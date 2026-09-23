@@ -146,7 +146,6 @@ input.bad{border-color:var(--warn);background:var(--warn-bg)}
         <label class="f">结束日期<input class="m" type="date" id="end"></label>
         <div class="full" style="margin-top:-4px"><button type="button" class="linkbtn" id="syncDates">用成绩单第一阶段开始、最后阶段结束日期带入</button></div>
         <label class="f">开立日期<input class="m" type="date" id="issue"></label>
-        <label class="f">Reference Nº<input class="m" id="ref" placeholder="C2025xxxx" autocomplete="off"></label>
       </div>
     </section>
 
@@ -252,7 +251,7 @@ function state(){
     f: g==='f',
     prog: progSel==='__other' ? $('progOther').value.trim() : progSel,
     mode: $('mode').value,
-    start: $('start').value, end: $('end').value, issue: $('issue').value, ref: $('ref').value.trim(),
+    start: $('start').value, end: $('end').value, issue: $('issue').value,
     pad: $('padEmpty').checked,
     inc: [$('inc1').checked, $('inc2').checked, $('inc3').checked]
   };
@@ -270,7 +269,6 @@ function page1(s){
     <div class="a lead">Nous certifions par la présente que</div>
     <div class="a body">${name} est ${s.f?'diplômée':'diplômé'} du programme de français ${val(s.prog,'Programme')} à l'institut de langues de Montréal. ${name} a suivi assidûment les cours et a réussi le travail requis par le programme d’enseignement requis.</div>
     <div class="a date">${val(frLong(s.issue),'Date')}</div>
-    <img class="a" src="${IMG.SIG1}" style="left:110pt;top:372pt;width:102pt">
     <img class="a" src="${IMG.DIRLINE}" style="left:71pt;top:429pt;width:211pt">
     <img class="a" src="${IMG.DATELINE}" style="left:506pt;top:429pt;width:211pt">
     <div class="a foot">Tél: 514-307-0666      Adresse: 220-5490 Av. Royalmount, Mont-Royal, QC H4P 1H7</div>
@@ -292,18 +290,16 @@ function page2(s){
     ${bar(segs,49.65,125,495.75,4.5)}
     <div class="a ttl">Attestation d' études</div>
     <div class="a blk" style="top:218pt"><b>INFORMATION DE ${s.f?'L’ÉTUDIANTE':'L’ÉTUDIANT'}:</b></div>
-    <div class="a blk" style="top:252pt"><b>Nom de famille</b></div>
-    <div class="a blk" style="top:271pt"><b>${val(s.nom,'Nom')}</b></div>
-    <div class="a blk" style="top:293pt"><b>Prénom: ${val(s.prenom,'Prénom')}</b></div>
-    <div class="a blk" style="top:313pt"><b>Numéro d’identification étudiant: ${val(s.sid,'Numéro')}</b></div>
+    <div class="a blk" style="top:252pt"><b>Nom de famille: ${val(s.nom,'Nom')}</b></div>
+    <div class="a blk" style="top:272pt"><b>Prénom: ${val(s.prenom,'Prénom')}</b></div>
+    <div class="a blk" style="top:292pt"><b>Numéro d’identification étudiant: ${val(s.sid,'Numéro')}</b></div>
     <div class="a blk" style="top:352pt">À qui de droit,</div>
     <div class="a blk" style="top:386pt;line-height:14pt">Par la présente, nous certifions que ${name} a complété le programme de ${val(s.prog,'Programme')} tel qu'offert par l'Institut de Langues de Montréal. ${name} a commencé ses études ${d1} et les a terminées ${d2}.</div>
     <div class="a blk" style="top:444pt;line-height:14pt">${name} s'était ${s.f?'inscrite':'inscrit'} ${MODE_FR[s.mode]} à l'Institut de langues de Montréal.</div>
     <div class="a blk" style="top:533pt"><b>Cordialement,</b></div>
     <div class="a blk" style="top:551pt"><b>Lei Shang</b></div>
-    <img class="a" src="${IMG.SIG2}" style="left:53pt;top:568pt;width:76pt">
     <div class="a blk" style="top:601pt"><b>Directrice</b></div>
-    <div class="a blk" style="top:637pt;line-height:16pt"><b>Reference Nº: ${val(s.ref,'C2025xxxx')}<br>Date: ${val(frLong(s.issue),'date')}</b></div>
+    <div class="a blk" style="top:637pt;line-height:16pt"><b>Reference Nº: C20250194<br>Date: ${val(frLong(s.issue),'date')}</b></div>
     <img class="a" src="${IMG.LC}" style="left:382pt;top:634pt;width:152pt">
     ${bar([['g',18],['b',20],['t',14],['g',16],['b',16],['t',16]],49.65,710,495.75,4.5)}
     <div class="a ft" style="top:721pt">(514)- 307-0666 <img src="${IMG.ICON}" style="width:11pt;height:11pt;vertical-align:-2pt;margin:0 4pt"> info@mlicanada.ca</div>
@@ -343,7 +339,6 @@ function page3(s){
     <div class="a ttl">L'institut de Langues de Montréal - Rapport Académique</div>
     ${blocks}
     <div class="a" style="left:53pt;top:${bottom}pt;width:506pt;border-top:.8pt solid #000"></div>
-    <img class="a" src="${IMG.SIG2}" style="left:58pt;top:${Math.max(bottom+6,636)}pt;width:76pt">
     <div class="a ft" style="left:0;width:612pt;text-align:center;top:${Math.max(bottom+10,642)}pt">220-5490 Av. Royalmount, Mont-Royal, QC H4P 1H7</div>
     <img class="a" src="${IMG.LC}" style="left:466pt;top:${Math.max(bottom+2,632)}pt;width:84pt">
     ${bar([['g',26],['b',27],['t',47]],49.75,675,512.5,4.5)}
@@ -354,7 +349,7 @@ function page3(s){
 /* ---------- validation ---------- */
 function validate(s){
   const w=[];
-  const req=[['nom','姓'],['prenom','名'],['sid','学号'],['start','开始日期'],['end','结束日期'],['issue','开立日期'],['ref','Reference Nº']];
+  const req=[['nom','姓'],['prenom','名'],['sid','学号'],['start','开始日期'],['end','结束日期'],['issue','开立日期']];
   document.querySelectorAll('.form input.bad').forEach(el=>el.classList.remove('bad'));
   const miss=req.filter(([k])=>!s[k]);
   miss.forEach(([k])=>$(k).classList.add('bad'));
