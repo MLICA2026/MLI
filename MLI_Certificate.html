@@ -48,6 +48,7 @@ input.bad{border-color:var(--warn);background:var(--warn-bg)}
 .seg label:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:-2px}
 .autodates{font-size:12px;color:var(--muted)}
 .autodates div{margin-top:4px;padding:8px 10px;border-radius:6px;background:var(--panel);border:1px dashed var(--line);font-size:14px;color:var(--ink)}
+.segf{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
 .linkbtn{background:none;border:none;color:#0B7FA8;font:inherit;font-size:12px;cursor:pointer;padding:0;text-decoration:underline}
 .stage{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px;background:var(--panel)}
 .stage-head{display:flex;gap:8px;align-items:end;margin-bottom:8px}
@@ -144,6 +145,18 @@ input.bad{border-color:var(--warn);background:var(--warn-bg)}
             <option value="ft">Full time</option><option value="pt">Part time</option><option value="both">Both</option>
           </select>
         </label>
+        <div class="f segf">状态
+          <div class="seg" role="radiogroup" aria-label="状态">
+            <label><input type="radio" name="status" value="done" checked>已完成</label>
+            <label><input type="radio" name="status" value="ongoing">在读中</label>
+          </div>
+        </div>
+        <div class="f segf">授课方式
+          <div class="seg" role="radiogroup" aria-label="授课方式">
+            <label><input type="radio" name="delivery" value="onsite" checked>面授</label>
+            <label><input type="radio" name="delivery" value="online">线上</label>
+          </div>
+        </div>
         <label class="f full" id="progOtherWrap" hidden>自填课程名称<input class="m" id="progOther"></label>
         <div class="full autodates">在读期间（依成绩单自动带入）<div id="autoRange">—</div></div>
         <label class="f">开立日期<input class="m" type="date" id="issue"></label>
@@ -250,6 +263,8 @@ function state(){
     f: g==='f',
     prog: progSel==='__other' ? $('progOther').value.trim() : progSel,
     mode: $('mode').value,
+    ongoing: document.querySelector('input[name=status]:checked').value==='ongoing',
+    online: document.querySelector('input[name=delivery]:checked').value==='online',
     start: stageRange().start, end: stageRange().end, issue: $('issue').value,
     pad: $('padEmpty').checked,
     inc: [$('inc1').checked, $('inc2').checked, $('inc3').checked]
@@ -293,8 +308,8 @@ function page2(s){
     <div class="a blk" style="top:272pt"><b>Prénom: ${val(s.prenom,'Prénom')}</b></div>
     <div class="a blk" style="top:292pt"><b>Numéro d’identification étudiant: ${val(s.sid,'Numéro')}</b></div>
     <div class="a blk" style="top:352pt">À qui de droit,</div>
-    <div class="a blk" style="top:386pt;line-height:14pt">Par la présente, nous certifions que ${name} a complété le programme de ${val(s.prog,'Programme')} tel qu'offert par l'Institut de Langues de Montréal. ${name} a commencé ses études ${d1} et les a terminées ${d2}.</div>
-    <div class="a blk" style="top:444pt;line-height:14pt">${name} s'était ${s.f?'inscrite':'inscrit'} ${MODE_FR[s.mode]} à l'Institut de langues de Montréal.</div>
+    <div class="a blk" style="top:386pt;line-height:14pt">Par la présente, nous certifions que ${name} ${s.ongoing?'suit actuellement':'a complété'} le programme de ${val(s.prog,'Programme')}${s.online?' en ligne':''} tel qu'offert par l'Institut de Langues de Montréal. ${name} a commencé ses études ${d1}${s.ongoing?'':' et les a terminées '+d2}.</div>
+    <div class="a blk" style="top:444pt;line-height:14pt">${name} ${s.ongoing?'est':"s'était"} ${s.f?'inscrite':'inscrit'} ${MODE_FR[s.mode]}${s.online?' aux cours en ligne de':' à'} l'Institut de langues de Montréal.</div>
     <div class="a blk" style="top:533pt"><b>Cordialement,</b></div>
     <div class="a blk" style="top:551pt"><b>Lei Shang</b></div>
     <div class="a blk" style="top:601pt"><b>Directrice</b></div>
@@ -323,7 +338,7 @@ function page3(s){
       body += `<div class="c" style="left:0;top:17pt">${esc(r.level)}</div>`;
       body += ['co','eo','ce','ee'].map((k,j)=>`<div class="c num" style="left:${cols[j]-53}pt;top:17pt">${esc(r[k])}</div>`).join('');
       if(r.pres) body += `<div class="c num" style="left:${cols[3]-53}pt;top:31pt">${esc(r.pres.replace(/%$/,''))}%</div>`;
-      if(r.from||r.to) body += `<div class="c" style="left:0;top:42pt">du ${esc(dmy(r.from))} au ${esc(dmy(r.to))}</div>`;
+      if(r.from||r.to) body += `<div class="c" style="left:0;top:42pt">${r.to ? 'du '+esc(dmy(r.from))+' au '+esc(dmy(r.to)) : 'depuis le '+esc(dmy(r.from))}</div>`;
     }
     return `<div class="a rblk" style="top:${y}pt">${head}${body}</div>`;
   }).join('');
@@ -354,22 +369,23 @@ function validate(s){
   miss.forEach(([k])=>$(k).classList.add('bad'));
   if(miss.length) w.push('未填：'+miss.map(x=>x[1]).join('、'));
   if(!s.prog) w.push('未填：课程名称');
-  if(s.issue && s.end && s.issue < s.end) w.push('开立日期早于课程结束日期');
+  if(!s.ongoing && s.issue && s.end && s.issue < s.end) w.push('开立日期早于课程结束日期（若学生还在读，状态请选“在读中”）');
+  if(s.ongoing && s.inc[0]) w.push('状态为在读中，但仍勾选了 Diplôme（证书）');
   stages.forEach((r,i)=>{
     const n='阶段 '+(i+1)+(r.level?'（'+r.level+'）':'');
     const el=k=>document.querySelector(`.stage[data-id="${r.id}"] [data-k="${k}"]`);
     if(!r.level){ w.push(n+'：未填 Niveau'); el('level').classList.add('bad'); }
     ['co','eo','ce','ee'].forEach(k=>{
       const v=r[k];
-      if(v==='') { el(k).classList.add('bad'); return; }
+      if(v==='') { if(!s.ongoing) el(k).classList.add('bad'); return; }
       const x=Number(v); if(isNaN(x)||x<0||x>100){ w.push(n+'：分数“'+v+'”不在 0–100'); el(k).classList.add('bad'); }
     });
-    if(['co','eo','ce','ee'].some(k=>r[k]==='')) w.push(n+'：分数未填齐');
+    if(!s.ongoing && ['co','eo','ce','ee'].some(k=>r[k]==='')) w.push(n+'：分数未填齐');
     const p=r.pres.replace(/%$/,'');
-    if(p===''){ w.push(n+'：未填出勤率'); el('pres').classList.add('bad'); }
+    if(p===''){ if(!s.ongoing){ w.push(n+'：未填出勤率'); el('pres').classList.add('bad'); } }
     else { const x=Number(p); if(isNaN(x)||x<0||x>100){ w.push(n+'：出勤率“'+r.pres+'”不在 0–100'); el('pres').classList.add('bad'); } }
-    if(!r.from||!r.to){ w.push(n+'：日期未填齐'); if(!r.from)el('from').classList.add('bad'); if(!r.to)el('to').classList.add('bad'); }
-    else if(r.from>r.to){ w.push(n+'：开始晚于结束'); el('from').classList.add('bad'); }
+    if(!r.from||(!r.to&&!s.ongoing)){ w.push(n+'：日期未填齐'); if(!r.from)el('from').classList.add('bad'); if(!r.to&&!s.ongoing)el('to').classList.add('bad'); }
+    else if(r.to && r.from>r.to){ w.push(n+'：开始晚于结束'); el('from').classList.add('bad'); }
   });
   if(!stages.length) w.push('成绩单没有任何阶段');
   return w;
@@ -387,7 +403,7 @@ function update(){
     const W=w*PT, H=h*PT, k=Math.min(1, (i===0?avail:avail*0.78)/W);
     return `<div class="pv-label">${lbl}</div><div class="pv" style="width:${W*k}px;height:${H*k}px"><div class="page-wrap" style="transform:scale(${k});transform-origin:0 0;width:${W}px;height:${H}px">${fn(s)}</div></div>`;
   }).join('') || '<div style="color:var(--muted);margin-top:40px">请至少勾选一份文件</div>';
-  $('autoRange').textContent = (s.start||s.end) ? (dmy(s.start)||'?')+'  →  '+(dmy(s.end)||'?') : '填入成绩单各阶段日期后自动显示';
+  $('autoRange').textContent = (s.start||s.end) ? (s.ongoing ? (dmy(s.start)||'?')+'  →  在读中' : (dmy(s.start)||'?')+'  →  '+(dmy(s.end)||'?')) : '填入成绩单各阶段日期后自动显示';
   const w = validate(s);
   $('warns').innerHTML = w.map(x=>'<li>'+esc(x)+'</li>').join('');
 }
@@ -441,6 +457,7 @@ async function generate(){
   document.querySelector('.form').addEventListener('input', e=>{ if(!e.target.dataset.k) update(); });
   document.querySelector('.form').addEventListener('change', e=>{ if(!e.target.dataset.k) update(); });
   $('gen').addEventListener('click', generate);
+  document.querySelectorAll('input[name=status]').forEach(r=>r.addEventListener('change',()=>{ $('inc1').checked = r.value==='done' ? true : false; update(); }));
   let rt; window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(update,120);});
   update();
 })();
