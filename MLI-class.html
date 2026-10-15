@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MLI 班级管理</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1f2328;--mut:#6b7280;--line:#e5e2dc;--acc:#b4232c;--acc2:#fbe9ea;--ok:#1f7a4d;--okb:#e5f4ec;--warn:#9a5b00;--warnb:#fff3db;--blue:#2457a6;--blueb:#e8effa;
+--sA1:#e9a23b;--sA2:#d9683a;--sC5G:#5a8f3d;--sC5T:#2f7d6b;--sC6:#3f6fb5;--sC7:#6a4fb0;--sP1:#c2477a;--sP2:#9b3f9e;--sP3:#5b3c8f;--sX:#888}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181a;--card:#212226;--ink:#e8e6e3;--mut:#9aa0a6;--line:#34363b;--acc:#ff6b73;--acc2:#3a2225;--okb:#1d3329;--ok:#6fd19c;--warnb:#3a2f17;--warn:#f0b54d;--blue:#8db4ff;--blueb:#1f2a3f}}
+:root[data-theme="dark"]{--bg:#17181a;--card:#212226;--ink:#e8e6e3;--mut:#9aa0a6;--line:#34363b;--acc:#ff6b73;--acc2:#3a2225;--okb:#1d3329;--ok:#6fd19c;--warnb:#3a2f17;--warn:#f0b54d;--blue:#8db4ff;--blueb:#1f2a3f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+header img{height:34px}
+header h1{font-size:17px;margin:0;font-weight:700}
+header .sub{color:var(--mut);font-size:12px}
+nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+nav button,.chip,.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 11px;cursor:pointer;font:inherit;font-size:13px}
+nav button.on,.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.sm{padding:3px 8px;font-size:12px}
+main{max-width:1280px;margin:0 auto;padding:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.card h2{font-size:15px;margin:0 0 10px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:900px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
+.kpi b{font-size:22px;display:block}
+.kpi .l{font-weight:700}
+.kpi small{color:var(--mut)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+th{color:var(--mut);font-weight:600;font-size:12px;background:var(--card);position:sticky;top:0}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--acc2)}
+.tag{display:inline-block;border-radius:6px;padding:0 6px;font-size:12px;line-height:20px;background:var(--bg);border:1px solid var(--line)}
+.st{color:#fff;border:none}
+.t-ok{background:var(--okb);color:var(--ok);border-color:transparent}
+.t-w{background:var(--warnb);color:var(--warn);border-color:transparent}
+.t-b{background:var(--blueb);color:var(--blue);border-color:transparent}
+.t-r{background:var(--acc2);color:var(--acc);border-color:transparent}
+.fr{color:var(--blue);font-weight:700}
+.zh{color:var(--acc);font-weight:700}
+.mut{color:var(--mut)}
+.small{font-size:12px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+textarea{width:100%;min-height:120px;font-size:13px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+label.f>*{color:var(--ink);font-size:14px}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:12px}
+.wds{display:flex;gap:4px;flex-wrap:wrap}
+.wds .chip{min-width:34px;text-align:center;padding:5px 6px}
+.wds .chip.f{background:var(--blue);border-color:var(--blue);color:#fff}
+/* gantt */
+.gwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.g{position:relative}
+.gh{display:flex;position:sticky;top:0;background:var(--card);z-index:3;border-bottom:1px solid var(--line);height:26px}
+.gh .lab,.gr .lab{position:sticky;left:0;background:var(--card);z-index:4;width:150px;min-width:150px;border-right:1px solid var(--line);padding:4px 8px;font-size:12px}
+.gm{position:absolute;top:0;height:26px;border-left:1px solid var(--line);font-size:11px;color:var(--mut);padding:5px 4px}
+.gr{display:flex;height:34px;border-bottom:1px solid var(--line);cursor:pointer}
+.gr:hover .lab{background:var(--acc2)}
+.gr .lab b{display:block;font-size:12.5px;line-height:14px}
+.gr .lab span{font-size:11px;color:var(--mut)}
+.gt{position:relative;flex:none}
+.bar{position:absolute;top:7px;height:20px;border-radius:5px;color:#fff;font-size:11px;line-height:20px;padding:0 4px;overflow:hidden;white-space:nowrap;opacity:.92}
+.bar.past{opacity:.38}
+.mk{position:absolute;top:2px;width:0;height:30px;z-index:2}
+.mk i{position:absolute;left:-6px;top:0;font-style:normal;font-size:12px;line-height:12px}
+.today{position:absolute;top:0;bottom:0;width:2px;background:var(--acc);z-index:2;pointer-events:none}
+.gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--line);pointer-events:none}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mut);align-items:center}
+.legend span i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:3px}
+/* modal */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px}
+.mbg.on{display:flex}
+.modal{background:var(--bg);border-radius:14px;max-width:980px;width:100%;padding:16px;position:relative}
+.modal .x{position:absolute;right:12px;top:10px}
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:10px 0}
+.sc{border:1px solid var(--line);border-radius:10px;padding:9px;background:var(--card);border-top:4px solid var(--sX)}
+.sc.cur{box-shadow:0 0 0 2px var(--acc)}
+.sc h4{margin:0 0 4px;font-size:14px}
+.sc div{font-size:12px}
+.sess{columns:3 260px;column-gap:16px;font-size:12.5px}
+.sess .ss{break-inside:avoid;margin-bottom:10px}
+.sess .ss h5{margin:0 0 3px;font-size:13px}
+.sess .li{display:flex;gap:6px;padding:1px 0}
+.sess .li .n{width:22px;color:var(--mut);text-align:right}
+.sess .li .d{width:84px}
+.sess .li span:nth-child(3){min-width:44px}
+.sess .li.past{opacity:.5}
+.sess .li.ex{font-weight:700}
+.warnbox{background:var(--warnb);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13px;margin:6px 0}
+.note{color:var(--mut);font-size:12px}
+@media(max-width:640px){main{padding:12px}header{padding:8px 12px}nav{margin-left:0}.gh .lab,.gr .lab{width:96px;min-width:96px}}
+@media print{header,nav,.noprint{display:none!important}.mbg{position:static;background:none;padding:0}.modal{max-width:none}}
+</style>
+</head>
+<body>
+<header>
+<img src="data:image/webp;base64,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" alt="MLI">
+<div><h1>班级管理</h1><div class="sub">时间轴 · 结课日 · 考试日 · 中教/外教排课</div></div>
+<nav id="nav"></nav>
+</header>
+<main id="main"></main>
+<div class="mbg" id="mbg"><div class="modal" id="modal"></div></div>
+<script>
+const SEED=[{"id": "261017", "code": "261017", "cat": "加东中国班", "ft": false, "wd": [1, 3, 5], "fr": [3], "stage": "A1", "start": "2026-10-17", "coh": "2026-10-17", "sheetEnd": "2026-12-22", "tch": [{"id": "xiao-zhang", "n": "Xiao Zhang", "zh": true, "d": [1, 5]}, {"id": "sharfaa", "n": "Sharfaa", "zh": false, "d": [3]}], "off": [], "note": "", "unset": false}, {"id": "261009", "code": "261009", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [2], "stage": "A1", "start": "2026-10-09", "coh": "2026-10-09", "sheetEnd": "2026-12-16", "tch": [{"id": "xiao-zhang", "n": "Xiao Zhang", "zh": true, "d": [0, 4]}, {"id": "david-f", "n": "David F.", "zh": false, "d": [2]}], "off": [], "note": "", "unset": false}, {"id": "261007i", "code": "261007", "cat": "加东国际班", "ft": false, "wd": [0, 1, 2, 3], "fr": [0, 1, 2, 3], "stage": "P1", "start": "2026-10-07", "coh": "2026-10-07", "sheetEnd": "2026-12-16", "tch": [{"id": "anna-d", "n": "Anna D.", "zh": false, "d": [0, 1, 2, 3]}], "off": [], "note": "", "unset": false}, {"id": "261003", "code": "261003", "cat": "加东中国班", "ft": false, "wd": [1, 3, 5], "fr": [3], "stage": "A1", "start": "2026-10-03", "coh": "2026-10-03", "sheetEnd": "2026-12-08", "tch": [{"id": "christine", "n": "Christine", "zh": true, "d": [1, 5]}, {"id": "david-f", "n": "David F.", "zh": false, "d": [3]}], "off": [], "note": "", "unset": false}, {"id": "261002", "code": "261002", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 1], "stage": "A1", "start": "2026-10-02", "coh": "2026-10-02", "sheetEnd": "2026-11-12", "tch": [{"id": "luo-man", "n": "Luo Man", "zh": true, "d": [2, 3, 4]}, {"id": "maroua", "n": "Maroua", "zh": false, "d": [0, 1]}], "off": [], "note": "", "unset": false, "exOv": {"A1": {"mid": "2026-11-02"}}}, {"id": "261001i", "code": "261001", "cat": "加东国际班", "ft": false, "wd": [0, 1, 2, 3], "fr": [0, 1, 2, 3], "stage": "P1", "start": "2026-10-01", "coh": "2026-10-01", "sheetEnd": "2026-12-10", "tch": [{"id": "widad", "n": "Widad", "zh": false, "d": [0, 1, 2, 3]}], "off": [], "note": "", "unset": false}, {"id": "261001", "code": "261001", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 1], "stage": "A1", "start": "2026-10-01", "coh": "2026-10-01", "sheetEnd": "2026-11-13", "tch": [{"id": "vera", "n": "Vera", "zh": true, "d": [2, 3, 4]}, {"id": "maroua", "n": "Maroua", "zh": false, "d": [0, 1]}], "off": [], "note": "A0 语音改为上 5 天（每天 2 小时＋1 小时自习）", "unset": false, "a0": 5}, {"id": "260925w", "code": "260925", "cat": "加西中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 2], "stage": "A1", "start": "2026-09-25", "coh": "2026-09-25", "sheetEnd": "2026-11-06", "tch": [{"id": "sun-zhen", "n": "Sun Zhen", "zh": true, "d": [1, 3, 4]}, {"id": "bita", "n": "Bita", "zh": false, "d": [0, 2]}], "off": [], "note": "", "unset": false}, {"id": "260921", "code": "260921", "cat": "加东中国班", "ft": false, "wd": [0, 2, 3], "fr": [3], "stage": "A1", "start": "2026-09-21", "coh": "2026-09-21", "sheetEnd": "2026-11-26", "tch": [{"id": "xinyu", "n": "Toby", "zh": true, "d": [0, 2]}, {"id": "vivianne", "n": "Vivianne", "zh": false, "d": [3]}], "off": [], "note": "", "unset": false}, {"id": "260919w", "code": "260919", "cat": "加西中国班", "ft": false, "wd": [1, 3, 5], "fr": [3], "stage": "A1", "start": "2026-09-19", "coh": "2026-09-19", "sheetEnd": "2026-11-24", "tch": [{"id": "luo-man", "n": "Luo Man", "zh": true, "d": [1, 5]}, {"id": "henok", "n": "Henok", "zh": false, "d": [3]}], "off": [], "note": "外教 Henok（考官）周四", "unset": false, "exOv": {"A1": {"mid": "2026-10-26"}}}, {"id": "260917", "code": "260917", "cat": "加东中国班", "ft": false, "wd": [2, 3, 5], "fr": [2], "stage": "A1", "start": "2026-09-17", "coh": "2026-09-17", "sheetEnd": "2026-11-21", "tch": [{"id": "shihan", "n": "Shihan", "zh": true, "d": [3, 5]}, {"id": "elnaz", "n": "Elnaz", "zh": false, "d": [2]}], "off": [], "note": "", "unset": false}, {"id": "260914w", "code": "260914", "cat": "加西中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [], "stage": "A1", "start": "2026-09-14", "coh": "2026-09-14", "sheetEnd": "", "tch": [{"id": "feng-dai", "n": "Feng Dai", "zh": true, "d": []}, {"id": "nadia-e", "n": "Nadia E.", "zh": false, "d": []}], "off": [], "note": "10 月课表写 10/23 结课，是 Excel 公式漏了加西 9/30 假日（假日范围从第 8 行开始，9/30 在 N7）", "unset": true, "exOv": {"A1": {"mid": "2026-10-12"}}}, {"id": "260909i", "code": "260909", "cat": "加东国际班", "ft": false, "wd": [0, 1, 2, 3], "fr": [0, 1, 2, 3], "stage": "P1", "start": "2026-09-09", "coh": "2026-09-09", "sheetEnd": "2026-11-18", "tch": [{"id": "nazanin", "n": "Nazanin", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260902", "code": "260902", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [2], "stage": "A1", "start": "2026-09-02", "coh": "2026-09-02", "sheetEnd": "2026-11-11", "tch": [{"id": "nina", "n": "Nina", "zh": true, "d": [0, 4]}, {"id": "afaf", "n": "Afaf", "zh": false, "d": [2]}], "off": [], "note": "", "unset": false, "exOv": {"A1": {"mid": "2026-10-05"}}}, {"id": "260821", "code": "260821", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 4], "stage": "A2", "start": "2026-10-08", "coh": "2026-08-21", "sheetEnd": "2026-11-25", "tch": [{"id": "vera", "n": "Vera", "zh": true, "d": [1, 2, 3]}, {"id": "elnaz", "n": "Elnaz", "zh": false, "d": [0, 4]}], "off": [], "note": "A0 语音改为上 5 天（每天 2 小时＋1 小时自习）；A1 第一堂（周五）Elnaz 念 PPT 遭学生反映，之后周一停课一次，周二起由 Vera 用新教材上", "unset": false, "a0": 5}, {"id": "260817w", "code": "260817", "cat": "加西中国班", "ft": false, "wd": [0, 2, 4], "fr": [2], "stage": "A1", "start": "2026-08-17", "coh": "2026-08-17", "sheetEnd": "", "tch": [{"id": "sun-zhen", "n": "Sun Zhen", "zh": true, "d": [0, 4]}, {"id": "delicia", "n": "Delicia", "zh": false, "d": [2]}], "off": [], "note": "10 月课表写 10/26 结课，同样是 Excel 公式漏了加西 9/30", "unset": false}, {"id": "260810", "code": "260810", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [4], "stage": "A1", "start": "2026-08-10", "coh": "2026-08-10", "sheetEnd": "2026-10-19", "tch": [{"id": "ze-han-sun", "n": "Ze Han Sun", "zh": true, "d": [0, 2]}, {"id": "emma", "n": "Emma", "zh": false, "d": [4]}], "off": [], "note": "", "unset": false}, {"id": "260807", "code": "260807", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 1], "stage": "A2", "start": "2026-09-22", "coh": "2026-08-07", "sheetEnd": "2026-11-09", "tch": [{"id": "afrouz", "n": "Afrouz", "zh": false, "d": [0, 1]}, {"id": "nina", "n": "Nina", "zh": true, "d": [2, 3, 4]}], "off": [], "note": "", "unset": false}, {"id": "260806i", "code": "260806", "cat": "加东国际班", "ft": false, "wd": [0, 1, 2, 3], "fr": [0, 1, 2, 3], "stage": "P1", "start": "2026-08-06", "coh": "2026-08-06", "sheetEnd": "2026-10-19", "tch": [{"id": "massyl", "n": "Massyl", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260730", "code": "260730", "cat": "加东中国班", "ft": false, "wd": [0, 3, 5], "fr": [0], "stage": "A2", "start": "2026-10-08", "coh": "2026-07-30", "sheetEnd": "2026-12-31", "tch": [{"id": "tingting-xing", "n": "Tingting Xing", "zh": true, "d": [3, 5]}, {"id": "sharfaa", "n": "Sharfaa", "zh": false, "d": [0]}], "off": [], "note": "", "unset": false}, {"id": "260729", "code": "260729", "cat": "加东中国班", "ft": false, "wd": [2, 3, 5], "fr": [3], "stage": "A2", "start": "2026-10-03", "coh": "2026-07-29", "sheetEnd": "2026-12-19", "tch": [{"id": "shawn", "n": "Shawn", "zh": true, "d": [2, 5]}, {"id": "elnaz", "n": "Elnaz", "zh": false, "d": [3]}], "off": [], "note": "", "unset": false}, {"id": "260717", "code": "260717", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [0], "stage": "A2", "start": "2026-09-28", "coh": "2026-07-17", "sheetEnd": "2026-12-16", "tch": [{"id": "viola", "n": "Viola", "zh": true, "d": [2, 4]}, {"id": "maya", "n": "Maya", "zh": false, "d": [0]}], "off": [], "note": "", "unset": false}, {"id": "260715i", "code": "260715", "cat": "加东国际班", "ft": false, "wd": [0, 1, 2, 3], "fr": [0, 1, 2, 3], "stage": "P2", "start": "2026-09-29", "coh": "2026-07-15", "sheetEnd": "2026-12-08", "tch": [{"id": "wissem", "n": "Wissem", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260708w", "code": "260708", "cat": "加西中国班", "ft": false, "wd": [0, 2, 4], "fr": [0], "stage": "A2", "start": "2026-09-14", "coh": "2026-07-08", "sheetEnd": "2026-11-20", "tch": [{"id": "tingting-xing", "n": "Tingting Xing", "zh": true, "d": [2, 4]}, {"id": "serge", "n": "Serge", "zh": false, "d": [0]}], "off": [], "note": "", "unset": false}, {"id": "260703", "code": "260703", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [3, 4], "stage": "C5G", "start": "2026-10-01", "coh": "2026-07-03", "sheetEnd": "2026-11-17", "tch": [{"id": "helen", "n": "Helen", "zh": true, "d": [0, 1, 2]}, {"id": "afrouz", "n": "Afrouz", "zh": false, "d": [3, 4]}], "off": [], "note": "", "unset": false}, {"id": "260626", "code": "260626", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [2], "stage": "A2", "start": "2026-09-09", "coh": "2026-06-26", "sheetEnd": "2026-11-27", "tch": [{"id": "hui-fang", "n": "Hui Fang", "zh": true, "d": [0, 4]}, {"id": "nesrine", "n": "Nesrine", "zh": false, "d": [2]}], "off": [], "note": "", "unset": false}, {"id": "260625w", "code": "260625", "cat": "加西中国班", "ft": false, "wd": [2, 3, 5], "fr": [5], "stage": "A2", "start": "2026-09-03", "coh": "2026-06-25", "sheetEnd": "2026-11-07", "tch": [{"id": "sun-zhen", "n": "Sun Zhen", "zh": true, "d": [2, 3]}, {"id": "dounia", "n": "Dounia", "zh": false, "d": [5]}], "off": [], "note": "", "unset": false}, {"id": "260609", "code": "260609", "cat": "加东中国班", "ft": false, "wd": [1, 3, 4], "fr": [4], "stage": "A2", "start": "2026-08-14", "coh": "2026-06-09", "sheetEnd": "2026-10-30", "tch": [{"id": "ze-han-sun", "n": "Ze Han Sun", "zh": true, "d": [1, 3]}, {"id": "maroua", "n": "Maroua", "zh": false, "d": [4]}], "off": [], "note": "", "unset": false}, {"id": "260605i", "code": "260605", "cat": "加东国际班", "ft": false, "wd": [0, 2, 3, 4], "fr": [0, 2, 3, 4], "stage": "P2", "start": "2026-08-20", "coh": "2026-06-05", "sheetEnd": "2026-11-02", "tch": [{"id": "thomas", "n": "Thomas", "zh": false, "d": []}], "off": ["2026-09-28"], "note": "", "unset": false}, {"id": "260525", "code": "260525", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 1, 2, 3, 4], "stage": "C6", "start": "2026-09-24", "coh": "2026-05-25", "sheetEnd": "2026-10-19", "tch": [{"id": "alim", "n": "Alim", "zh": false, "d": [0, 1, 2]}, {"id": "elnaz", "n": "Elnaz", "zh": false, "d": [3, 4]}], "off": [], "note": "", "unset": false}, {"id": "260516w", "code": "260516", "cat": "加西中国班", "ft": false, "wd": [1, 3, 5], "fr": [1], "stage": "A2", "start": "2026-07-23", "coh": "2026-05-16", "sheetEnd": "2026-10-08", "tch": [{"id": "bita", "n": "Bita", "zh": false, "d": [1]}, {"id": "viola", "n": "Viola", "zh": true, "d": [3, 5]}], "off": [], "note": "", "unset": false}, {"id": "260513", "code": "260513", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [0], "stage": "A2", "start": "2026-07-27", "coh": "2026-05-13", "sheetEnd": "2026-10-16", "tch": [{"id": "jellinette", "n": "Jellinette", "zh": false, "d": [0]}, {"id": "jade", "n": "Jade", "zh": true, "d": [2, 4]}], "off": [], "note": "", "unset": false}, {"id": "260505w", "code": "260505", "cat": "加西中国班", "ft": true, "wd": [0, 1, 2, 3, 4], "fr": [0, 1, 2, 3, 4], "stage": "C6", "start": "2026-09-23", "coh": "2026-05-05", "sheetEnd": "", "tch": [{"id": "marion", "n": "Marion", "zh": false, "d": []}, {"id": "bita", "n": "Bita", "zh": false, "d": []}], "off": [], "note": "CLB6 依考试统计（10/16、10/19 Marion + Bita）；10 月课表仍写 CLB5 TCF 至 9/22", "unset": false}, {"id": "260501", "code": "260501", "cat": "加东中国班", "ft": true, "wd": [0, 1, 2, 4], "fr": [0, 1, 2, 4], "stage": "C6", "start": "2026-09-21", "coh": "2026-05-01", "sheetEnd": "2026-10-20", "tch": [{"id": "sahar", "n": "Sahar", "zh": false, "d": [0, 2]}, {"id": "dyhia", "n": "Dyhia", "zh": false, "d": [1, 4]}], "off": [], "note": "", "unset": false}, {"id": "260429i", "code": "260429", "cat": "加东国际班", "ft": false, "wd": [0, 2, 3, 4], "fr": [0, 2, 3, 4], "stage": "P3", "start": "2026-09-23", "coh": "2026-04-29", "sheetEnd": "2026-12-02", "tch": [{"id": "lyon", "n": "Lyon", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260428", "code": "260428", "cat": "加东中国班", "ft": false, "wd": [1, 3, 5], "fr": [5], "stage": "C5G", "start": "2026-09-24", "coh": "2026-04-28", "sheetEnd": "2026-10-22", "tch": [{"id": "xinyu", "n": "Toby", "zh": true, "d": [1, 3]}, {"id": "serge", "n": "Serge", "zh": false, "d": [5]}], "off": [], "note": "", "unset": false}, {"id": "260417", "code": "260417", "cat": "加东中国班", "ft": false, "wd": [2, 4, 5], "fr": [5], "stage": "C5G", "start": "2026-09-16", "coh": "2026-04-17", "sheetEnd": "2026-10-14", "tch": [{"id": "tingting-xing", "n": "Tingting Xing", "zh": true, "d": [2, 4]}, {"id": "sahar", "n": "Sahar", "zh": false, "d": [5]}], "off": [], "note": "", "unset": false}, {"id": "260406", "code": "260406", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [0, 2, 4], "stage": "C5T", "start": "2026-10-09", "coh": "2026-04-06", "sheetEnd": "2026-11-25", "tch": [{"id": "fourat", "n": "Fourat", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260318i", "code": "260318", "cat": "加东国际班", "ft": false, "wd": [0, 1, 2, 3], "fr": [0, 1, 2, 3], "stage": "P3", "start": "2026-08-25", "coh": "2026-03-18", "sheetEnd": "2026-11-04", "tch": [{"id": "maroua", "n": "Maroua", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260316", "code": "260316", "cat": "加东中国班", "ft": false, "wd": [0, 3, 4], "fr": [3, 4], "stage": "C5T", "start": "2026-09-17", "coh": "2026-03-16", "sheetEnd": "2026-11-02", "tch": [{"id": "jade", "n": "Jade", "zh": true, "d": [0]}, {"id": "maya", "n": "Maya", "zh": false, "d": [3, 4]}], "off": [], "note": "", "unset": false}, {"id": "260306w", "code": "260306", "cat": "加西中国班", "ft": false, "wd": [1, 3, 5], "fr": [1, 3, 5], "stage": "C5T", "start": "2026-09-04", "coh": "2026-03-06", "sheetEnd": "2026-10-23", "tch": [{"id": "bita", "n": "Bita", "zh": false, "d": []}, {"id": "dyhia", "n": "Dyhia", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260305", "code": "260305", "cat": "加东中国班", "ft": false, "wd": [1, 3, 5], "fr": [1, 3, 5], "stage": "C5T", "start": "2026-09-01", "coh": "2026-03-05", "sheetEnd": "2026-10-15", "tch": [{"id": "maya", "n": "Maya", "zh": false, "d": [1, 5]}, {"id": "jellinette", "n": "Jellinette", "zh": false, "d": [3]}], "off": [], "note": "", "unset": false}, {"id": "260213", "code": "260213", "cat": "加东中国班", "ft": false, "wd": [1, 3, 4], "fr": [1, 3, 4], "stage": "C6", "start": "2026-09-29", "coh": "2026-02-13", "sheetEnd": "2026-11-05", "tch": [{"id": "serge", "n": "Serge", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260122", "code": "260122", "cat": "加东中国班", "ft": false, "wd": [0, 2, 3], "fr": [0, 2, 3], "stage": "C5T", "start": "2026-08-12", "coh": "2026-01-22", "sheetEnd": "2026-10-22", "tch": [{"id": "emna", "n": "Emna", "zh": false, "d": []}], "off": [], "note": "", "unset": false}, {"id": "260109", "code": "260109", "cat": "加东中国班", "ft": false, "wd": [1, 4, 5], "fr": [4, 5], "stage": "C6", "start": "2026-09-29", "coh": "2026-01-09", "sheetEnd": "2026-11-07", "tch": [{"id": "hui-fang", "n": "Hui Fang", "zh": true, "d": [1]}, {"id": "daniele", "n": "Daniele", "zh": false, "d": [4, 5]}], "off": [], "note": "", "unset": false}, {"id": "251210", "code": "251210", "cat": "加东中国班", "ft": false, "wd": [0, 2, 3], "fr": [0, 2, 3], "stage": "C6", "start": "2026-09-16", "coh": "2025-12-10", "sheetEnd": "2026-10-26", "tch": [{"id": "dounia", "n": "Dounia", "zh": false, "d": [0]}, {"id": "madhavi", "n": "Madhavi", "zh": false, "d": [2, 3]}], "off": [], "note": "", "unset": false}, {"id": "251127E", "code": "251127E", "cat": "加东中国班", "ft": false, "wd": [0, 3, 4], "fr": [0, 3, 4], "stage": "C6", "start": "2026-09-03", "coh": "2025-11-27", "sheetEnd": "2026-10-16", "tch": [{"id": "afaf", "n": "Afaf", "zh": false, "d": [0, 4]}, {"id": "wissem", "n": "Wissem", "zh": false, "d": [3]}], "off": [], "note": "", "unset": false}, {"id": "251024", "code": "251024", "cat": "加东中国班", "ft": false, "wd": [0, 2, 4], "fr": [0, 2, 4], "stage": "C7", "start": "2026-09-11", "coh": "2025-10-24", "sheetEnd": "2026-10-21", "tch": [{"id": "sharfaa", "n": "Sharfaa", "zh": false, "d": [2, 4]}, {"id": "dyhia", "n": "Dyhia", "zh": false, "d": [0]}], "off": [], "note": "", "unset": false}, {"id": "251018", "code": "251018", "cat": "加东中国班", "ft": false, "wd": [1, 3, 5], "fr": [1, 3, 5], "stage": "C7", "start": "2026-09-05", "coh": "2025-10-18", "sheetEnd": "2026-10-13", "tch": [{"id": "sharfaa", "n": "Sharfaa", "zh": false, "d": [1, 3]}, {"id": "dyhia", "n": "Dyhia", "zh": false, "d": [5]}], "off": [], "note": "", "unset": false}];
+const MAILSEED={"mail": {"massyl": "massylt@gmail.com", "maroua": "marouaberrachedi.contact@gmail.com", "ze-han-sun": "sunz19913@gmail.com", "afrouz": "afrooz.javadi@gmail.com", "hui-fang": "fmichel@263.net", "sahar": "sahardezfoulizadeh@gmail.com", "dyhia": "dyhiabelkessam1989@gmail.com", "emna": "bennaceur.1990.emna@gmail.com", "madhavi": "hi.madhavij@gmail.com", "dounia": "amarti.doon@gmail.com", "sharfaa": "emambux.sharfaa@yahoo.com", "henok": "kperi.henok@gmail.com", "marion": "marionrennesson4@gmail.com", "bita": "bita.ebrahimi16@gmail.com", "afaf": "rabiaroka2@gmail.com", "wissem": "luxfactaest@live.com", "nazanin": "nazanin.safavizadeh@gmail.com", "elnaz": "elnazfayaz085@gmail.com", "alim": "ahosany@yahoo.com", "jade": "jadeyunmei@gmail.com", "maya": "bouamar.maya@gmail.com", "jellinette": "pierrettengorot@gmail.com", "nadia-e": "elmekroum.nadia@gmail.com", "vera": "verasunyaqi1204@gmail.com", "helen": "deng.hneng@gmail.com", "lyon": "citycrypto@protonmail.com", "thomas": "tomjlbknight@gmail.com", "xinyu": "zxy19960425@163.com", "viola": "violahuisong0414@gmail.com", "tingting-xing": "veroniquexing9004@gmail.com", "serge": "lambserg@gmail.com", "ulrich": "ulrichmontcho69@gmail.com", "feng-dai": "daif8188cn@hotmail.com", "shawn": "heshunyao@gmail.com", "widad": "djilali-widad@hotmail.com", "christine": "christine.yaru.jiang@gmail.com", "jessica": "jessbricam19@gmail.com", "sun-zhen": "derecius@hotmail.com", "vivianne": "vivi_riberdy@hotmail.fr", "radia": "radiabenchemsi@gmail.com", "amira": "amirabouchnafa7@gmail.com", "tingting-liu": "liutingting230727@163.com", "nora": "jingrut1225@gmail.com", "ayuta": "layuta84@gmail.com", "sylvain": "sylvainuny@gmail.com", "daniele": "elongdaniele@gmail.com", "kasra": "kasraoghalaiee@gmail.com"}, "names": {"afaf": "Afaf", "afrouz": "Afrouz", "alim": "Alim", "anna-d": "Anna D.", "ayuta": "Ayuta", "bita": "Bita", "christine": "Christine", "daniele": "Daniele", "david-f": "David F.", "delicia": "Delicia", "dounia": "Dounia", "dyhia": "Dyhia", "elnaz": "Elnaz", "emma": "Emma", "emna": "Emna", "feng-dai": "Feng Dai", "fourat": "Fourat", "hadi": "Hadi", "helen": "Helen", "henok": "Henok", "hui-fang": "Hui Fang", "jade": "Jade", "jellinette": "Jellinette", "jessica": "Jessica", "luo-man": "Luo Man", "lyon": "Lyon", "madhavi": "Madhavi", "marion": "Marion", "maroua": "Maroua", "massyl": "Massyl", "maya": "Maya", "nadia-e": "Nadia E.", "nazanin": "Nazanin", "nesrine": "Nesrine", "nina": "Nina", "nora": "Nora", "sahar": "Sahar", "sahar-z": "Sahar Z.", "serge": "Serge", "sharfaa": "Sharfaa", "shawn": "Shawn", "shihan": "Shihan", "sun-zhen": "Sun Zhen", "sylvain": "Sylvain", "thomas": "Thomas", "tingting-liu": "Tingting Liu", "tingting-xing": "Tingting Xing", "xinyu": "Toby", "ulrich": "Ulrich", "vera": "Vera", "viola": "Viola", "vivianne": "Vivianne", "widad": "Widad", "wissem": "Wissem", "xiao-zhang": "Xiao Zhang", "ze-han-sun": "Ze Han Sun", "amine": "Amine", "amira": "Amira", "amira-2025": "Amira（2025）", "ariane": "Ariane", "atta": "Atta", "delphine": "Delphine Feng", "kasra": "Kasra", "lulu": "Lulu Sun", "nadia": "Nadia", "radia": "Radia", "rahma": "Rahma", "ranya": "Ranya", "ronnie": "Ronnie Yao", "stephanie": "Stephanie", "sun-chao": "Sun Chao", "williams": "Williams", "yassine": "Yassine"}};
+const TPL={"A1M": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" A1 mid or Phase 1 mid)", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [["J'espère que vous allez bien.", 0, null]], [["Je vous contacte pour organiser l'", 0, null], ["examen de mi-parcours", 1, null], [" du cours ", 0, null], ["班級名稱", 0, null], [" ", 0, null], ["(A1 mid  or Phase 1 mid )", 1, null], [", qui aura lieu le ", 0, null], ["[日期]", 1, null], [".", 0, null]], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["(1) Compréhension Orale + Compréhension Écrite + Expression Écrite  (60 minutes)", 1, null]], [["Tout se déroule sur ", 0, null], ["notre plateforme (les étudiants s'en chargent individuellement)", 1, null]], [["Les audios sont intégrés et ne seront diffusés que ", 0, null], ["deux fois", 1, null], [".", 0, null]], [], [["Après une heure", 1, null]], [["(2) Expression Orale (individuel) :", 1, null], [" À réaliser via Zoom.", 0, null], [" (8 à 10 min par étudiant)", 1, null]], [["Pour l'ordre de passage, vous pouvez suivre la liste de présence ou préparer votre propre planning. L'essentiel est que les étudiants sachent à quel moment entrer dans la salle d'attente.", 0, null]], [["Lien des examens (Expression Orale) :", 1, null], [" ", 1, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/WtCZfgSoylflKQdM5Mfu03Kosah", 1, "https://kdq2zqshh47.sg.larksuite.com/drive/folder/WtCZfgSoylflKQdM5Mfu03Kosah"], [" ", 1, null]], [["Pour l'oral, merci de passer \"Host\" (A", 0, null], ["nimateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : _______", 1, null]], [["Guide: ", 0, null], ["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien (dans le même lien d\"EO). ", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "A1F": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" A1 Final)", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [["J'espère que vous allez bien.", 0, null]], [["Je vous contacte pour organiser l'", 0, null], ["examen ", 1, null], ["du cours ", 0, null], ["班級名稱", 0, null], [" ", 0, null], ["(A1 Final)", 1, null], [", qui aura lieu le ", 0, null], ["[日期]", 1, null], [".", 0, null]], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["(1) Compréhension Orale + Compréhension Écrite + Expression Écrite  (60 minutes)", 1, null]], [["Tout se déroule sur ", 0, null], ["notre plateforme (les étudiants s'en chargent individuellement)", 1, null]], [["Les audios sont intégrés et ne seront diffusés que ", 0, null], ["deux fois", 1, null], [".", 0, null]], [], [["Après une heure", 1, null]], [["(2) Expression Orale (individuel) :", 1, null], [" À réaliser via Zoom.", 0, null], [" (8 à 10 min par étudiant)", 1, null]], [["Pour l'ordre de passage, vous pouvez suivre la liste de présence ou préparer votre propre planning. L'essentiel est que les étudiants sachent à quel moment entrer dans la salle d'attente.", 0, null]], [["Lien des examens (Expression Orale) :", 1, null], [" ", 1, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/ECJrfg7TVloea0dFW8YunNVAsTe", 1, null]], [["Pour l'oral, merci de passer \"Host\" (A", 0, null], ["nimateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : _______", 1, null]], [["Guide: ", 0, null], ["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien (dans le même lien d\"EO). ", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "P1F": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" Phase 1 Final)", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [["J'espère que vous allez bien.", 0, null]], [["Je vous contacte pour organiser l'", 0, null], ["examen ", 1, null], [" du cours ", 0, null], ["班級名稱", 0, null], [" ", 0, null], ["(Phase 1 Final )", 1, null], [", qui aura lieu le", 0, null], [" ", 0, null], ["[日期]", 1, null], [".", 0, null]], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["(1) Compréhension Orale + Compréhension Écrite + Expression Écrite  (60 minutes)", 1, null]], [["Tout se déroule sur ", 0, null], ["notre plateforme (les étudiants s'en chargent individuellement)", 1, null]], [["Les audios sont intégrés et ne seront diffusés que ", 0, null], ["deux fois", 1, null], [".", 0, null]], [], [["Après une heure", 1, null]], [["(2) Expression Orale (individuel) :", 1, null], [" À réaliser via Zoom.", 0, null], [" (8 à 10 min par étudiant)", 1, null]], [["Pour l'ordre de passage, vous pouvez suivre la liste de présence ou préparer votre propre planning. L'essentiel est que les étudiants sachent à quel moment entrer dans la salle d'attente.", 0, null]], [["Lien des examens (Expression Orale) :", 1, null], [" ", 1, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/MXQOfkXHGlZzBWd9BALuH6JisIc", 1, null]], [["Pour l'oral, merci de passer \"Host\" (A", 0, null], ["nimateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : _______", 1, null]], [["Guide: ", 0, null], ["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien (dans le même lien d\"EO). ", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "A2M": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" A2 Mid or Phase 2 Mid )", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [["J'espère que vous allez bien.", 0, null]], [["Je vous contacte pour organiser l'", 0, null], ["examen ", 1, null], ["du cours ", 0, null], ["班級名稱", 0, null], [" ", 0, null], ["(A2 Mid  or Phase 2 Midl )", 1, null], [", qui aura lieu le ", 0, null], ["[日期]", 1, null], [".", 0, null]], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["(1) Compréhension Orale + Compréhension Écrite + Expression Écrite  (120 minutes)", 1, null]], [["Tout se déroule sur ", 0, null], ["notre plateforme (les étudiants s'en chargent individuellement)", 1, null]], [["Les audios sont intégrés et ne seront diffusés que ", 0, null], ["deux fois", 1, null], [".", 0, null]], [], [["Après deux heure", 1, null]], [["(2) Expression Orale (individuel) :", 1, null], [" À réaliser via Zoom.", 0, null], [" (8 à 10 min par étudiant)", 1, null]], [["Pour l'ordre de passage, vous pouvez suivre la liste de présence ou préparer votre propre planning. L'essentiel est que les étudiants sachent à quel moment entrer dans la salle d'attente.", 0, null]], [["Lien des examens (Expression Orale) :", 1, null], [" ", 1, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/GSTGfNTALldVXAdbfbmu2OmFsns", 1, null]], [["Pour l'oral, merci de passer \"Host\" (A", 0, null], ["nimateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : _______", 1, null]], [["Guide: ", 0, null], ["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien (dans le même lien d\"EO). ", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "A2F": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" A2 final )", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [["J'espère que vous allez bien.", 0, null]], [["Je vous contacte pour organiser l'", 0, null], ["examen ", 1, null], ["du cours ", 0, null], ["班級名稱", 0, null], [" ", 0, null], ["(A2 final )", 1, null], [", qui aura lieu le ", 0, null], ["[日期]", 1, null], [".", 0, null]], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["(1) Compréhension Orale + Compréhension Écrite + Expression Écrite  (130 minutes)", 1, null]], [["Tout se déroule sur ", 0, null], ["notre plateforme (les étudiants s'en chargent individuellement)", 1, null]], [["Les audios sont intégrés et ne seront diffusés que ", 0, null], ["deux fois", 1, null], [".", 0, null]], [], [["Après deux heure", 1, null]], [["(2) Expression Orale (individuel) :", 1, null], [" À réaliser via Zoom.", 0, null], [" (8 à 10 min par étudiant)", 1, null]], [["Pour l'ordre de passage, vous pouvez suivre la liste de présence ou préparer votre propre planning. L'essentiel est que les étudiants sachent à quel moment entrer dans la salle d'attente.", 0, null]], [["Lien des examens (Expression Orale) :", 1, null], [" ", 1, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/N9rLf7ObelC3k0dxuZxu4Z6HsDg?from=from_copylink", 1, null]], [["Pour l'oral, merci de passer \"Host\" (A", 0, null], ["nimateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : _______", 1, null]], [["Guide: ", 0, null], ["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien (dans le même lien d\"EO). ", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "P2F": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" Phase 2 final )", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [["J'espère que vous allez bien.", 0, null]], [["Je vous contacte pour organiser l'", 0, null], ["examen ", 1, null], ["du cours ", 0, null], ["班級名稱", 0, null], [" ", 0, null], ["(Phase 2 final )", 1, null], [", qui aura lieu le ", 0, null], ["[日期]", 1, null], [".", 0, null]], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["(1) Compréhension Orale + Compréhension Écrite + Expression Écrite  (130 minutes)", 1, null]], [["Tout se déroule sur ", 0, null], ["notre plateforme (les étudiants s'en chargent individuellement)", 1, null]], [["Les audios sont intégrés et ne seront diffusés que ", 0, null], ["deux fois", 1, null], [".", 0, null]], [], [["Après deux heure", 1, null]], [["(2) Expression Orale (individuel) :", 1, null], [" À réaliser via Zoom.", 0, null], [" (8 à 10 min par étudiant)", 1, null]], [["Pour l'ordre de passage, vous pouvez suivre la liste de présence ou préparer votre propre planning. L'essentiel est que les étudiants sachent à quel moment entrer dans la salle d'attente.", 0, null]], [["Lien des examens (Expression Orale) :", 1, null], [" ", 1, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/EqUefOEm5lxCu4dGOOtuVKMDsFd", 1, null]], [["Pour l'oral, merci de passer \"Host\" (A", 0, null], ["nimateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : _______", 1, null]], [["Guide: ", 0, null], ["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien (dans le même lien d\"EO). ", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "N5": [[["請注意，TCF 口語，寫作以任務一跟二為主+ 聽力＋閱讀以1-20題為主，聽力只會播放一遍", 1, null], ["\n", 0, null]], [["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" Niveau 5)", 0, null], ["-Confirmation demandée sous deux jours", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [], [["J'espère que vous allez bien.", 0, null]], [], [["Je vous contacte pour organiser la fin du cours", 0, null], [" ", 1, null], ["班級 (Niveau 5)", 1, null], [" ", 0, null], ["dont le dernier cours aura", 0, null], [" lieu", 0, null], [" ", 0, null], ["日期. ", 0, null]], [], [["Veuillez noter que pour cette étape de préparation au TCF, nous allons nous concentrer sur les ", 0, null], ["tâches 1 et 2", 1, null], [" pour l'expression orale et écrite, ainsi que sur les ", 0, null], ["questions 1 à 20", 1, null], [" pour la compréhension orale et écrite.", 0, null]], [], [], [["Voici les détails importants pour les examens :", 0, null]], [["Organisation des examens ", 1, null]], [["L'examen couvre les quatre compétences (compréhension orale/écrite, expression orale/écrite).", 0, null]], [["Compréhension Orale + Compréhension Écrite.", 1, null], ["  ", 0, null]], [["Grâce à la mise à jour du système,", 0, null], [" les audios sont intégrés et ne seront diffusés qu'une seule fois", 1, null], [". Vous n'avez pas besoin de lancer les pistes manuellement.", 0, null]], [[": Expression Écrite + Expression Orale (individuel).", 1, null]], [["Pour l'oral, merci de passer \"Host\" (Animateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : ", 1, null], ["927145", 1, null]], [["Oral Test (1 on 1)", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [["Ressources :", 1, null]], [["Expression orale (EO):", 1, null], ["\n", 0, null], ["Les sujets de l’épreuve d’expression orale sont désormais disponibles directement sur la plateforme, dans le contenu du cours correspondant à la séance d’examen. Veuillez les déverrouiller à l’aide du code host", 0, null], [" ", 0, null], ["927145", 1, null], [".", 0, null]], [], [["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [["Pour l'écrit et l'oral, merci de suivre les ", 0, null], ["critères du TCF (barème de 1 à 20)", 1, null], [" et d'ajouter un commentaire pour chaque étudiant.", 0, null]], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "N6": [[["請注意Level 6, CLB6 都需要分兩天進行考試，因為考試會考不完", 1, null]], [["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" Niveau 6)", 0, null], ["-Confirmation demandée sous deux jours", 0, null], ["\n", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [], [["J'espère que vous allez bien.", 0, null]], [], [["Je vous contacte pour organiser la fin du cours", 0, null], [" ", 1, null], ["班級名稱", 1, null], [" (Niveau 6)", 1, null], [" dont le dernier cours aura lieu ", 0, null], ["日期.", 0, null], [" Voici les détails importants pour les examens :", 0, null]], [["1. ", 0, null], ["Organisation des examens ", 1, null]], [["L'examen couvre les quatre compétences (compréhension orale/écrite, expression orale/écrite).", 0, null]], [[" : Compréhension Orale + Compréhension Écrite.", 1, null], [" \n", 0, null], ["* Grâce à la mise à jour du système, les audios sont intégrés et ne seront diffusés qu'une seule fois. Vous n'avez pas besoin de lancer les pistes manuellement.", 0, null]], [[": Expression Écrite + Expression Orale (individuel).", 1, null]], [["Pour l'oral, merci de passer \"Host\" (Animateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : ", 1, null], ["927145", 1, null], [" ", 1, null]], [["Oral Test (1 on 1)", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [["Ressources :", 1, null]], [["Expression orale (EO):", 1, null], ["\n", 0, null], ["Les sujets de l’épreuve d’expression orale sont désormais disponibles directement sur la plateforme, dans le contenu du cours correspondant à la séance d’examen. Veuillez les déverrouiller à l’aide du code host", 0, null], [" ", 0, null], ["927145", 1, null], [".", 0, null]], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien.", 0, null]], [], [["2. ", 0, null], ["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [["Pour l'écrit et l'oral, merci de suivre les ", 0, null], ["critères du TCF (barème de 1 à 20)", 1, null], [" et d'ajouter un commentaire pour chaque étudiant.", 0, null]], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]], []], "N7": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" Niveau 7)", 0, null], ["-Confirmation demandée sous deux jours", 0, null], ["\n", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [], [["J'espère que vous allez bien.", 0, null]], [], [["Je vous contacte pour organiser la fin du cours", 0, null], [" ", 1, null], ["班級名稱", 1, null], [" (Niveau 7)", 1, null], [" dont le dernier cours aura lieu ", 0, null], ["日期.", 0, null], [" Voici les détails importants pour les examens :", 0, null]], [["1. ", 0, null], ["Organisation des examens ", 1, null]], [["L'examen couvre les quatre compétences (compréhension orale/écrite, expression orale/écrite).", 0, null]], [[" : Compréhension Orale + Compréhension Écrite.", 1, null], [" \n", 0, null], ["* Grâce à la mise à jour du système, les audios sont intégrés et ne seront diffusés qu'une seule fois. Vous n'avez pas besoin de lancer les pistes manuellement.", 0, null]], [[": Expression Écrite + Expression Orale (individuel).", 1, null]], [["Pour l'oral, merci de passer \"Host\" (Animateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : ", 1, null], ["927145", 1, null], [" ", 1, null]], [["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [["Ressources :", 1, null]], [["Expression orale (EO):", 1, null], ["\n", 0, null], ["Les sujets de l’épreuve d’expression orale sont désormais disponibles directement sur la plateforme, dans le contenu du cours correspondant à la séance d’examen. Veuillez les déverrouiller à l’aide du code host", 0, null], [" ", 0, null], ["927145", 1, null], [".", 0, null]], [], [["2. ", 0, null], ["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [["Pour l'écrit et l'oral, merci de suivre les ", 0, null], ["critères du TCF (barème de 1 à 20)", 1, null], [" et d'ajouter un commentaire pour chaque étudiant.", 0, null]], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]], []], "S1": [[["【MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" )\n", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [], [["J'espère que vous allez bien.", 0, null]], [], [["Je vous contacte pour organiser la fin du cours", 0, null], [" ", 1, null], ["班級名稱", 1, null], [" )", 1, null], [" dont le dernier cours aura lieu ", 0, null], ["日期.", 0, null], [" Voici les détails importants pour les examens :", 0, null]], [["1. ", 0, null], ["Organisation des examens ", 1, null]], [["Expression Écrite ", 1, null]], [["Expression Orale (individuel)", 1, null]], [["Pour l'oral, merci de passer \"Host\" (Animateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : ＿＿＿＿＿ ", 1, null]], [["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [["Ressources :", 1, null]], [["Lien des examens :", 1, null], [" ", 0, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/TllMfDAJTlxehEd6xGbl82gWgZi", 0, "https://kdq2zqshh47.sg.larksuite.com/drive/folder/TllMfDAJTlxehEd6xGbl82gWgZi"], [" (EO)", 0, null]], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien.", 0, null]], [], [["2. ", 0, null], ["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [["Pour l'écrit et l'oral, merci de suivre les ", 0, null], ["critères du TCF (barème de 1 à 20)", 1, null], [" et d'ajouter un commentaire pour chaque étudiant.", 0, null]], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]], "S2": [[["MLI】Organisation des examens ( ", 0, null], ["班級名稱", 0, null], [" )\n", 0, null]], [["Bonjour ", 0, null], ["老師", 0, null], [",", 0, null]], [], [["J'espère que vous allez bien.", 0, null]], [], [["Je vous contacte pour organiser la fin du cours", 0, null], [" ", 1, null], ["班級名稱", 1, null], [" )", 1, null], [" dont le dernier cours aura lieu ", 0, null], ["日期.", 0, null], [" Voici les détails importants pour les examens :", 0, null]], [["1. ", 0, null], ["Organisation des examens ", 1, null]], [["Expression Écrite ", 1, null]], [["Expression Orale (individuel)", 1, null]], [["Pour l'oral, merci de passer \"Host\" (Animateur) et de demander aux étudiants de patienter dans la salle d'attente.", 0, null]], [["Code Host : ＿＿＿＿＿ ", 1, null]], [["Oral Test (1 on 1) +Grade Exam", 0, "https://kdq2zqshh47.sg.larksuite.com/docx/YeUrdHOUroLcjBxrWy8lcs67gLh"]], [["Ressources :", 1, null]], [["Lien des examens :", 1, null], [" ", 0, null], ["https://kdq2zqshh47.sg.larksuite.com/drive/folder/GYD6foAAml73KZdXGKvlrd0bgbg?from=from_copylink", 0, null], ["   (EO)", 0, null]], [["Assistance :", 1, null], [" En cas de problème technique, merci d'utiliser le formulaire Google disponible dans le lien.", 0, null]], [], [["2. ", 0, null], ["Corrections et Évaluations", 1, null]], [["Nous souhaitons que les corrections soient finalisées dans les ", 0, null], ["3 jours ouvrables", 1, null], [" suivant l'examen.", 0, null]], [["Même si la compréhension orale et écrite sont auto-corrigées, il est nécessaire de cliquer sur ", 0, null], ["\"Grade\"", 1, null], [" puis ", 0, null], ["\"Submit feedback\"", 1, null], [" pour générer le score final.", 0, null]], [["Pour l'écrit et l'oral, merci de suivre les ", 0, null], ["critères du TCF (barème de 1 à 20)", 1, null], [" et d'ajouter un commentaire pour chaque étudiant.", 0, null]], [], [["N'hésitez pas à me contacter si vous avez des questions.", 0, null]], [["Merci beaucoup pour votre collaboration.", 0, null]]]};
+const EXSEED={"260902|A1|mid": {"mail": true, "memo": "A1期中 笔试回家自己做；已重新给Afaf发邮件"}, "251018|C7|fin": {"recv": true, "memo": "Dyhia已回复收到；Sharfaa已回复"}, "260625w|A2|mid": {"memo": "期中考试在lesson19，15号好像不对，请核对下是不是应该是17号"}};
+const INACT=['amira','radia'];
+const SEED_VER='2026-10-15';
+const CN='一二三四五六日';
+const CATS=['加东中国班','加西中国班','加东国际班','加西国际班'];
+const DEF_CFG={
+ hol:['2025-12-24','2025-12-25','2025-12-26','2025-12-31','2026-01-01','2026-02-16','2026-04-03','2026-05-18','2026-06-24','2026-07-01','2026-09-07','2026-10-12','2026-12-25','2027-01-01','2027-02-15','2027-03-26','2027-05-24','2027-06-24','2027-07-01','2027-08-02','2027-09-06','2027-10-11','2027-12-24','2027-12-25','2027-12-26','2027-12-27'],
+ holW:['2026-09-30','2026-11-11','2027-09-30','2027-11-11'],
+ noMidFrom:'2026-09-01',
+ st:{
+  A1:{n:'A0+A1',s:29,mid:16,fin:1,bilan:1,noMid:1},
+  A2:{n:'A2',s:34,mid:19,fin:1,noMid:1},
+  C5G:{n:'CLB5 语法',s:13,mid:0,fin:0},
+  C5T:{n:'CLB5 TCF',s:20,mid:0,fin:2},
+  C6:{n:'CLB6',s:17,mid:0,fin:2},
+  C7:{n:'CLB7',s:17,mid:0,fin:2},
+  P1:{n:'Phase 1',s:40,mid:20,fin:1},
+  P2:{n:'Phase 2',s:40,mid:20,fin:1},
+  P3:{n:'Phase 3',s:40,mid:0,fin:2}
+ }
+};
+const PATH={cn:['A1','A2','C5G','C5T','C6','C7'],intl:['P1','P2','P3']};
+let CFG,CLS,EX,VIEW='ov',F={cat:'',st:'',q:''},GW={m:6,off:-1},WK=null;
+const SKEY='mli-cm-v5';
+function sGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function sSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function load(){
+ const s=sGet(SKEY);
+ CFG=s&&s.cfg?s.cfg:JSON.parse(JSON.stringify(DEF_CFG));
+ for(const k in DEF_CFG.st) if(!CFG.st[k]) CFG.st[k]=JSON.parse(JSON.stringify(DEF_CFG.st[k]));
+ if(!CFG.mail) CFG.mail=Object.assign({},MAILSEED.mail);
+ if(CFG.host==null) CFG.host='';
+ CLS=s&&s.cls?s.cls:seedCls();
+ EX=s&&s.ex?s.ex:JSON.parse(JSON.stringify(EXSEED));
+}
+function seedCls(){const L=JSON.parse(JSON.stringify(SEED));L.forEach(alignC);return L}
+function alignC(c){
+ if(!c.sheetEnd) return; const f=calc(c)[0]; if(!f||f.end===c.sheetEnd) return;
+ const {hol,wd}=cdays(c); let x=f.start,n=0,g=0;
+ while(x<=c.sheetEnd&&g++<900){if(wd.has(wdOf(x))&&!hol.has(x))n++;x=addD(x,1)}
+ if(!(wd.has(wdOf(c.sheetEnd))&&!hol.has(c.sheetEnd))) return;
+ c.sOv=Object.assign({},c.sOv,{[c.stage]:n}); c.aligned={std:f.cnt,n};
+}
+function save(){sSet(SKEY,{cfg:CFG,cls:CLS,ex:EX,ver:SEED_VER})}
+// ---- dates (UTC, ISO strings) ----
+const P=s=>{const[a,b,c]=s.split('-').map(Number);return Date.UTC(a,b-1,c)};
+const ISO=t=>new Date(t).toISOString().slice(0,10);
+const DAY=864e5;
+const wdOf=s=>(new Date(P(s)).getUTCDay()+6)%7; // 0=一
+const addD=(s,n)=>ISO(P(s)+n*DAY);
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const TODAY=today();
+const md=s=>s?(+s.slice(5,7))+'/'+(+s.slice(8)):'—';
+const mdw=s=>s?md(s)+'('+CN[wdOf(s)]+')':'—';
+const wdStr=a=>a.map(i=>CN[i]).join('');
+const isIntl=c=>c.cat.includes('国际');
+const isWest=c=>c.cat.includes('加西');
+const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+// ---- core calc ----
+const monday=d=>addD(d,-wdOf(d));
+function cdays(c){
+ const hol=new Set([...CFG.hol,...(isWest(c)?CFG.holW:[]),...(c.off||[])]);
+ const wd=new Set(c.wd);
+ const next=(d,incl)=>{let x=incl?d:addD(d,1),g=0;while(!(wd.has(wdOf(x))&&!hol.has(x))){x=addD(x,1);if(++g>800)return null}return x};
+ return {hol,wd,next};
+}
+function calc(c){
+ const path=isIntl(c)?PATH.intl:PATH.cn;
+ let i0=path.indexOf(c.stage); if(i0<0)i0=0;
+ let iL=c.last?path.indexOf(c.last):path.length-1; if(iL<i0)iL=i0;
+ const fr=new Set(c.fr||[]);
+ const out=[]; let d=c.start;
+ if(!d||!c.wd.length) return out;
+ const {next}=cdays(c);
+ d=next(d,true);
+ for(let i=i0;i<=iL&&d;i++){
+  const k=path[i], cf=CFG.st[k]; const a0=k==='A1'?(+c.a0||3):3; const n=(c.sOv&&c.sOv[k])||(cf.s+a0-3);
+  const ov=(c.exOv&&c.exOv[k])||{};
+  const ss=[];
+  for(let j=0;j<n&&d;j++){ss.push({d,i:j+1,f:fr.has(wdOf(d))});if(j<n-1)d=next(d)}
+  const noMid=!!(cf.noMid&&c.coh>=CFG.noMidFrom);
+  const newA1=k==='A1'&&noMid;
+  let plan=null,anchor=null;
+  if(newA1){
+   // 新版 A1：29 个连续上课日 = A0 3 堂 + 内容课 + (全日 Bilan+期末 / 兼读 期末)；内容课依星期归中教或外教
+   const full=c.ft,N=ss.length,exN=full?2:1;let z=0,w=0;
+   ss.forEach((x,j)=>{
+    if(j<a0){x.lab='A0-'+(j+1);x.a0=1;return}
+    if(j>=N-exN){x.lab=(x.f?'外':'中')+'·'+(j===N-1?'期末':'Bilan');return}
+    if(x.f){w++;x.lab='外'+w;x.wi=w}else{z++;x.lab='中'+z;x.zi=z}
+   });
+   plan={z,w,needZ:full?15:17,needW:full?9:8,full,std:N===cf.s+a0-3};
+   anchor=ss.find(x=>x.wi===(full?6:5));
+  }
+  let mid=null,midHome=false;
+  if(cf.mid){
+   if(noMid){ if(newA1&&ss.length>a0){mid=ov.mid||(anchor?anchor.d:ss[Math.min(cf.mid,ss.length)-1].d);midHome=true} }
+   else mid=ov.mid||(ss[cf.mid-1]?ss[cf.mid-1].d:null);
+  }
+  if(mid&&!midHome){const x=ss.find(x=>x.d===mid);if(x)x.m='期中'}
+  if(cf.bilan&&ss.length>=2&&(!newA1||c.ft)) ss[ss.length-2].m='Bilan';
+  const fin=ov.fin&&ov.fin.length?ov.fin.slice():(cf.fin?ss.slice(-cf.fin).map(x=>x.d):[]);
+  fin.forEach(dd=>{const x=ss.find(y=>y.d===dd);if(x)x.m='期末'});
+  const nF=ss.filter(x=>x.f).length;
+  out.push({k,n:cf.n,start:ss[0]&&ss[0].d,end:ss.length&&ss[ss.length-1].d,cnt:ss.length,nF,nZ:ss.length-nF,mid,midHome,fin,ss,noMid:noMid&&!midHome,plan,ovMid:!!ov.mid,ovFin:!!(ov.fin&&ov.fin.length),last:i===path.length-1||k===path[path.length-1]});
+  d=d&&next(d);
+ }
+ return out;
+}
+const midStr=s=>s.mid?(s.midHome?mdw(s.mid)+' 当周（居家）':mdw(s.mid)):(s.noMid?'无期中':'—');
+function info(c){
+ const S=calc(c); const first=S[0],last=S[S.length-1];
+ let cur=S.find(s=>s.start<=TODAY&&TODAY<=s.end)||null;
+ let st='进行中';
+ if(!first) st='资料不全';
+ else if(first.start>TODAY) {st='即将开课';cur=first}
+ else if(last.end<TODAY) {st='已结课';cur=last}
+ else if(!cur){cur=S.find(s=>s.start>TODAY)||last;}
+ const nxt=cur?S[S.indexOf(cur)+1]:null;
+ const warns=[];
+ if(c.sheetEnd&&first&&first.end!==c.sheetEnd) warns.push(`课表写本阶段 ${md(c.sheetEnd)} 结束，计算为 ${md(first.end)}${first.end<c.sheetEnd?'（可能有停课/请假未录入）':''}`);
+ if(c.aligned) warns.push(`本阶段课表结课日为 ${md(c.sheetEnd)}：标准 ${c.aligned.std} 次课，课表实际 ${c.aligned.n} 次（已依课表计算，可能含停课、补课或并班）`);
+ if(c.unset) warns.push('外教上课日未设定，中教/外教次数无法分开计算');
+ c.tch.filter(t=>INACT.includes(t.id)).forEach(t=>warns.push(`课表仍排 ${t.n}（目前不合作），请确认代课老师`));
+ const cad=cadence(c,cur);
+ const a1=S.find(s=>s.plan);
+ if(a1&&a1.plan.std&&!c.unset&&(c.fr||[]).length&&(c.fr||[]).length<c.wd.length&&a1.end>=TODAY){const p=a1.plan;
+  if(p.z<p.needZ) warns.push(`A1 中教新知识只有 ${p.z} 堂（需 ${p.needZ}），因假期/停课落在中教日；请把最后 ${p.needZ-p.z} 堂外教课改给中教`);
+  else if(p.w<p.needW) warns.push(`A1 外教口语 ${p.w} 堂（标准 ${p.needW}），中教多 ${p.z-p.needZ} 堂`);}
+ if(cad.w) warns.push(cad.w);
+ return {S,cur,nxt,st,first,last,warns,cad};
+}
+function cadence(c,cur){
+ const n=c.wd.length,f=(c.fr||[]).filter(x=>c.wd.includes(x)).length;
+ if(c.unset) return {t:'—'};
+ if(isIntl(c)||f===n) return {t:'全外教'};
+ if(f===0) return {t:'全中教'};
+ const t=`${n-f}中+${f}外`;
+ let w='';
+ if(cur&&['A1','A2'].includes(cur.k)){
+  if(c.ft&&!(n===5&&f===2)) w=`全日班一般为 3中+2外，目前设定是 ${t}`;
+  if(!c.ft&&!(n===3&&f===1)) w=`兼读班一般为 2中+1外，目前设定是 ${t}`;
+ }
+ return {t,w};
+}
+const stCls={进行中:'t-ok',即将开课:'t-b',已结课:'',资料不全:'t-w'};
+const color=k=>`var(--s${k})`;
+function filtered(){
+ return CLS.filter(c=>(!F.cat||c.cat===F.cat)&&(!F.q||(c.code+' '+c.tch.map(t=>t.n).join(' ')+' '+(c.note||'')).toLowerCase().includes(F.q.toLowerCase()))).map(c=>({c,I:info(c)})).filter(x=>!F.st||x.I.st===F.st);
+}
+// ---- nav ----
+const VIEWS=[['ov','总览'],['list','班级列表'],['gantt','时间轴'],['stat','考试统计'],['exam','考试日历'],['new','开班计算'],['set','设置']];
+function nav(){document.getElementById('nav').innerHTML=VIEWS.map(([k,n])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}
+function go(v){VIEW=v;nav();render();window.scrollTo(0,0)}
+function filt(withSt=true){
+ return `<div class="row">${['',...CATS].map(k=>`<button class="chip ${F.cat===k?'on':''}" onclick="F.cat='${k}';render()">${k||'全部'}</button>`).join('')}
+ ${withSt?`<select onchange="F.st=this.value;render()">${['','进行中','即将开课','已结课'].map(s=>`<option value="${s}" ${F.st===s?'selected':''}>${s||'全部状态'}</option>`).join('')}</select>`:''}
+ <input placeholder="搜索班号/老师" value="${esc(F.q)}" oninput="F.q=this.value;clearTimeout(window._q);window._q=setTimeout(()=>{render();const e=document.querySelector('input[placeholder^=搜索]');e.focus();e.setSelectionRange(e.value.length,e.value.length)},250)"></div>`;
+}
+function tchStr(c){return c.tch.map(t=>`<span class="${t.zh?'zh':'fr'}">${esc(t.n)}</span>${t.d&&t.d.length?'<span class="mut">（'+wdStr(t.d)+'）</span>':''}`).join('、')}
+function wdHtml(c){return c.wd.map(i=>(c.fr||[]).includes(i)?`<span class="fr">${CN[i]}</span>`:`<span class="zh">${CN[i]}</span>`).join('')}
+// ---- views ----
+function render(){
+ const m=document.getElementById('main');
+ if(VIEW==='ov') m.innerHTML=vOv();
+ if(VIEW==='list') m.innerHTML=vList();
+ if(VIEW==='gantt') m.innerHTML=vGantt();
+ if(VIEW==='exam') m.innerHTML=vExam();
+ if(VIEW==='stat') m.innerHTML=vStat();
+ if(VIEW==='new') {m.innerHTML=vNew();calcNew()}
+ if(VIEW==='set') m.innerHTML=vSet();
+}
+function allEvents(){
+ const ev=[];
+ for(const c of CLS){const I=info(c);for(const s of I.S){
+  if(s.mid) ev.push({d:s.mid,t:s.midHome?'期中（居家，当周）':'期中',c,s});
+  s.fin.forEach((d,i)=>ev.push({d,t:s.fin.length>1?`期末 ${i+1}/${s.fin.length}`:'期末',c,s}));
+  ev.push({d:s.start,t:'开始',c,s,tr:1});
+ }}
+ return ev.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0);
+}
+function vOv(){
+ const X=CLS.map(c=>({c,I:info(c)}));
+ const h30=addD(TODAY,30), h14=addD(TODAY,14);
+ let k=`<div class="grid4">`+CATS.map(cat=>{
+  const a=X.filter(x=>x.c.cat===cat);
+  const on=a.filter(x=>x.I.st==='进行中').length, up=a.filter(x=>x.I.st==='即将开课').length;
+  const ex=a.filter(x=>x.I.S.some(s=>(s.mid&&s.mid>=TODAY&&s.mid<=h14)||s.fin.some(d=>d>=TODAY&&d<=h14))).length;
+  return `<div class="kpi" onclick="F.cat='${cat}';F.st='';go('list')"><div class="l">${cat}</div><b>${on}</b><small>进行中 · 即将开课 ${up} · 两周内考试 ${ex}</small></div>`}).join('')+`</div>`;
+ const ev=allEvents().filter(e=>e.d>=TODAY&&e.d<=h30);
+ const exams=ev.filter(e=>!e.tr);
+ const tr=ev.filter(e=>e.tr);
+ const warn=X.filter(x=>x.I.warns.length&&x.I.st!=='已结课');
+ return k+`<div class="card" style="margin-top:14px"><h2>未来 30 天考试（${exams.length}）</h2>${evTable(exams)}</div>
+ <div class="card"><h2>未来 30 天开课 / 换阶段（${tr.length}）</h2><p class="note">换阶段时请确认新阶段的中教、外教安排。</p>${evTable(tr,1)}</div>
+ <div class="card"><h2>需要核对（${warn.length}）</h2>${warn.length?`<div class="tw"><table><tr><th>班号</th><th>类型</th><th>说明</th></tr>${warn.map(x=>`<tr class="click" onclick="openC('${x.c.id}')"><td><b>${x.c.code}</b></td><td>${x.c.cat}</td><td style="white-space:normal">${x.I.warns.map(esc).join('<br>')}</td></tr>`).join('')}</table></div>`:'<span class="mut">没有问题</span>'}</div>`;
+}
+function evTable(ev,tr){
+ if(!ev.length) return '<span class="mut">无</span>';
+ return `<div class="tw"><table><tr><th>日期</th><th>班号</th><th>类型</th><th>${tr?'阶段':'考试'}</th><th>上课日</th><th>老师</th></tr>${ev.map(e=>`<tr class="click" onclick="openC('${e.c.id}')"><td>${mdw(e.d)}${e.d===TODAY?' <span class="tag t-r">今天</span>':''}</td><td><b>${e.c.code}</b></td><td>${e.c.cat}</td><td><span class="tag st" style="background:${color(e.s.k)}">${e.s.n}</span> ${tr?'开始':e.t}</td><td>${wdHtml(e.c)}</td><td>${tchStr(e.c)}</td></tr>`).join('')}</table></div>`;
+}
+function vList(){
+ const L=filtered();
+ return filt()+`<div class="card"><div class="note" style="margin-bottom:6px">上课日：<span class="zh">红=中教</span>　<span class="fr">蓝=外教</span>。点一行可看完整排课、修改停课日。</div><div class="tw"><table>
+ <tr><th>班号</th><th>类型</th><th>形式</th><th>上课日</th><th>状态</th><th>当前阶段</th><th>本阶段起止</th><th>期中</th><th>期末</th><th>下一阶段</th><th>全程结课</th><th>老师</th></tr>
+ ${L.map(({c,I})=>{const s=I.cur;return `<tr class="click" onclick="openC('${c.id}')"><td><b>${c.code}</b>${I.warns.length?' <span class="tag t-w" title="'+esc(I.warns.join('\n'))+'">!</span>':''}</td><td>${c.cat}</td><td>${c.ft?'全日':'兼读'}<br><span class="mut small">${I.cad.t}</span></td><td>${wdHtml(c)}</td><td><span class="tag ${stCls[I.st]}">${I.st}</span></td>
+ <td>${s?`<span class="tag st" style="background:${color(s.k)}">${s.n}</span>`:'—'}</td><td>${s?mdw(s.start)+' → '+mdw(s.end)+'<br><span class="mut small">'+s.cnt+' 次（中 '+s.nZ+' / 外 '+s.nF+'）</span>':''}</td>
+ <td>${s?(s.mid?midStr(s):(s.noMid?'<span class="mut small">无期中</span>':'—')):''}</td><td>${s&&s.fin.length?s.fin.map(mdw).join('<br>'):'—'}</td>
+ <td>${I.nxt?`${I.nxt.n}<br><span class="mut small">${mdw(I.nxt.start)} 起</span>`:'—'}</td><td>${I.last?mdw(I.last.end)+'<br><span class="mut small">'+I.last.n+'</span>':''}</td><td style="white-space:normal;min-width:150px">${tchStr(c)}</td></tr>`}).join('')}
+ </table></div>${L.length?'':'<p class="mut">没有符合条件的班级</p>'}</div>`;
+}
+function vGantt(){
+ const L=filtered().filter(x=>x.I.S.length);
+ const base=new Date(P(TODAY)); const y=base.getUTCFullYear(),mo=base.getUTCMonth()+GW.off;
+ const w0=ISO(Date.UTC(y,mo,1)), w1=ISO(Date.UTC(y,mo+GW.m,1));
+ const nd=(P(w1)-P(w0))/DAY, px=Math.max(3,Math.round(1100/nd*10)/10), W=nd*px;
+ const X=s=>(P(s)-P(w0))/DAY*px;
+ let months='',lines='';
+ for(let i=0;i<GW.m;i++){const s=ISO(Date.UTC(y,mo+i,1));const x=X(s);months+=`<div class="gm" style="left:${x}px">${new Date(P(s)).getUTCFullYear()%100}/${new Date(P(s)).getUTCMonth()+1}</div>`;lines+=`<div class="gridline" style="left:${x}px"></div>`}
+ const tx=X(TODAY);
+ const rows=L.map(({c,I})=>{
+  let bars='';
+  for(const s of I.S){ if(s.end<w0||s.start>=w1) continue;
+   const a=Math.max(0,X(s.start)), b=Math.min(W,X(s.end)+px);
+   bars+=`<div class="bar ${s.end<TODAY?'past':''}" style="left:${a}px;width:${Math.max(2,b-a)}px;background:${color(s.k)}" title="${s.n}：${md(s.start)}–${md(s.end)}，${s.cnt} 次">${s.n}</div>`;
+   if(s.mid&&s.mid>=w0&&s.mid<w1) bars+=`<div class="mk" style="left:${X(s.mid)+px/2}px" title="期中 ${midStr(s)}"><i>${s.midHome?'◇':'◆'}</i></div>`;
+   s.fin.forEach(d=>{if(d>=w0&&d<w1) bars+=`<div class="mk" style="left:${X(d)+px/2}px" title="期末 ${mdw(d)}"><i>★</i></div>`});
+  }
+  return `<div class="gr" onclick="openC('${c.id}')"><div class="lab"><b>${c.code}</b><span>${c.cat.replace('班','')} · ${c.ft?'全日':'兼读'} · ${wdStr(c.wd)}</span></div><div class="gt" style="width:${W}px">${lines}${bars}</div></div>`}).join('');
+ return filt(true)+`<div class="row"><select onchange="GW.m=+this.value;render()">${[3,6,9,12,18].map(n=>`<option value="${n}" ${GW.m===n?'selected':''}>显示 ${n} 个月</option>`).join('')}</select>
+ <button class="btn" onclick="GW.off-=1;render()">◀ 往前</button><button class="btn" onclick="GW.off=-1;render()">本月</button><button class="btn" onclick="GW.off+=1;render()">往后 ▶</button>
+ <div class="legend">${Object.keys(DEF_CFG.st).map(k=>`<span><i style="background:${color(k)}"></i>${CFG.st[k].n}</span>`).join('')}<span>◆ 期中</span><span>◇ 居家期中（当周）</span><span>★ 期末</span><span><i style="background:var(--acc);width:3px"></i>今天</span></div></div>
+ <div class="gwrap"><div class="g" style="width:${W+150}px"><div class="gh"><div class="lab">班级（${L.length}）</div><div class="gt" style="width:${W}px;position:relative">${months}${TODAY>=w0&&TODAY<w1?`<div class="today" style="left:${tx}px"></div>`:''}</div></div>
+ <div style="position:relative">${rows}${TODAY>=w0&&TODAY<w1?`<div class="today" style="left:${tx+(innerWidth<=640?96:150)}px"></div>`:''}</div></div></div>`;
+}
+function vExam(){
+ const ev=allEvents().filter(e=>!e.tr&&e.d>=addD(TODAY,-7)&&(!F.cat||e.c.cat===F.cat));
+ const by={};ev.forEach(e=>{const k=e.d.slice(0,7);(by[k]=by[k]||[]).push(e)});
+ return filt(false)+Object.keys(by).map(k=>`<div class="card"><h2>${k.slice(0,4)} 年 ${+k.slice(5)} 月（${by[k].length}）</h2>${evTable(by[k])}</div>`).join('')+(ev.length?'':'<p class="mut">没有考试</p>');
+}
+// ---- editor (shared by new + detail) ----
+function editor(c,pfx){
+ const path=isIntl(c)?PATH.intl:PATH.cn;
+ return `<div class="form">
+ <label class="f">班号<input id="${pfx}code" value="${esc(c.code)}"></label>
+ <label class="f">类型<select id="${pfx}cat">${CATS.map(k=>`<option ${c.cat===k?'selected':''}>${k}</option>`).join('')}</select></label>
+ <label class="f">形式<select id="${pfx}ft"><option value="0" ${!c.ft?'selected':''}>兼读（2中+1外）</option><option value="1" ${c.ft?'selected':''}>全日（3中+2外）</option></select></label>
+ <label class="f">班级开班日（判断有无期中）<input type="date" id="${pfx}coh" value="${c.coh||''}"></label>
+ <label class="f">从哪个阶段算起<select id="${pfx}stage">${path.map(k=>`<option value="${k}" ${c.stage===k?'selected':''}>${CFG.st[k].n}</option>`).join('')}</select></label>
+ <label class="f">该阶段第一堂课<input type="date" id="${pfx}start" value="${c.start||''}"></label>
+ <label class="f">A0 语音堂数（标准 3）<input type="number" min="0" max="10" id="${pfx}a0" value="${c.a0||3}"></label>
+ <label class="f">算到哪个阶段<select id="${pfx}last">${path.map(k=>`<option value="${k}" ${(c.last||path[path.length-1])===k?'selected':''}>${CFG.st[k].n}</option>`).join('')}</select></label>
+ </div>
+ <div class="form" style="grid-template-columns:1fr">
+ <div><div class="note">上课日（点一下选/取消；再点一下标为<b class="fr">外教</b>日）</div><div class="wds" id="${pfx}wds">${[0,1,2,3,4,5,6].map(i=>`<button type="button" class="chip ${c.wd.includes(i)?((c.fr||[]).includes(i)?'f':'on'):''}" data-i="${i}" onclick="cyc(this,'${pfx}')">${CN[i]}</button>`).join('')}</div>
+ <div class="note" style="margin-top:4px"><span class="zh">红 = 中教日</span>　<span class="fr">蓝 = 外教日</span>　国际班全部算外教</div></div>
+ <label class="f">本班停课/请假日（每行一个日期，如 2026-11-20 或 11/20）<textarea id="${pfx}off" style="min-height:60px">${(c.off||[]).join('\n')}</textarea></label>
+ <label class="f">备注<input id="${pfx}note" value="${esc(c.note||'')}"></label>
+ </div>`;
+}
+function cyc(b,pfx){
+ const isI=document.getElementById(pfx+'cat').value.includes('国际');
+ if(!b.classList.contains('on')&&!b.classList.contains('f')){b.classList.add(isI?'f':'on')}
+ else if(b.classList.contains('on')){b.classList.remove('on');b.classList.add('f')}
+ else b.classList.remove('f');
+ if(pfx==='n_') calcNew();
+}
+function normDate(s,ref){
+ s=s.trim();if(!s)return null;
+ let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+ m=s.match(/^(\d{1,2})[\/.\-月](\d{1,2})日?$/);if(m){let y=+(ref||TODAY).slice(0,4);let d=`${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;if(ref&&d<ref)d=`${y+1}`+d.slice(4);return d}
+ return null;
+}
+function readEd(pfx,base){
+ const g=id=>document.getElementById(pfx+id);
+ const wd=[],fr=[];g('wds').querySelectorAll('.chip').forEach(b=>{const i=+b.dataset.i;if(b.classList.contains('on'))wd.push(i);if(b.classList.contains('f')){wd.push(i);fr.push(i)}});
+ wd.sort();fr.sort();
+ const start=g('start').value;
+ const off=g('off').value.split(/[\n,，、]+/).map(s=>normDate(s,start)).filter(Boolean);
+ const c=Object.assign({},base,{code:g('code').value.trim(),cat:g('cat').value,ft:g('ft').value==='1',coh:g('coh').value||start,stage:g('stage').value,start,last:g('last').value,a0:+g('a0').value||3,wd,fr,off,note:g('note').value,unset:false});
+ const path=isIntl(c)?PATH.intl:PATH.cn; if(!path.includes(c.stage))c.stage=path[0]; if(!path.includes(c.last))c.last=path[path.length-1];
+ if(isIntl(c)) c.fr=c.wd.slice();
+ return c;
+}
+function result(c){
+ const I=info(c);
+ if(!I.S.length) return '<p class="mut">请填写第一堂课日期与上课日。</p>';
+ return `${I.warns.filter(w=>!w.startsWith('课表写')||c.sheetEnd).map(w=>`<div class="warnbox">${esc(w)}</div>`).join('')}
+ <div class="stages">${I.S.map(s=>`<div class="sc ${I.cur===s&&I.st==='进行中'?'cur':''}" style="border-top-color:${color(s.k)}"><h4>${s.n}</h4>
+ <div>${mdw(s.start)} → <b>${mdw(s.end)}</b></div><div class="mut">${s.cnt} 次课 · <span class="zh">中教 ${s.nZ}</span> · <span class="fr">外教 ${s.nF}</span></div>
+ <div>期中：${s.mid?'<b>'+midStr(s)+'</b>'+(s.ovMid?' <span class="tag t-w">已改期</span>':''):(s.noMid?'<span class="mut">无（'+CFG.noMidFrom.slice(0,7)+' 起开班）</span>':'<span class="mut">无</span>')}</div>
+ <div>期末：${s.fin.length?'<b>'+s.fin.map(mdw).join('、')+'</b>'+(s.ovFin?' <span class="tag t-w">已改期</span>':''):'<span class="mut">无</span>'}</div>
+ ${c.id&&CLS.includes(c)?`<div class="noprint" style="margin-top:4px">${s.mid||CFG.st[s.k].mid?`<button class="btn sm" onclick="chgEx('${c.id}','${s.k}','mid')">改期中</button> `:''}${s.fin.length?`<button class="btn sm" onclick="chgEx('${c.id}','${s.k}','fin')">改期末</button>`:''}</div>`:''}</div>`).join('')}</div>
+ <p class="note">全程预计 ${mdw(I.S[0].start)} → <b>${mdw(I.last.end)}</b>，共 ${I.S.reduce((a,s)=>a+s.cnt,0)} 次课。假期已自动跳过${isWest(c)?'（含加西 9/30、11/11）':''}。</p>
+ <details><summary style="cursor:pointer;font-weight:600;margin:6px 0">逐堂课表</summary><div class="sess">${I.S.map(s=>`<div class="ss"><h5 style="color:${color(s.k)}">${s.n}</h5>${s.ss.map(x=>`<div class="li ${x.d<TODAY?'past':''} ${x.m?'ex':''}"><span class="n">${x.i}</span><span class="d">${mdw(x.d)}</span><span class="${x.a0?'mut':x.f?'fr':'zh'}">${c.unset?'':(x.lab||(x.f?'外':'中'))}</span>${x.m?`<span class="tag ${x.m==='Bilan'?'t-b':'t-r'}">${x.m}</span>`:''}</div>`).join('')}</div>`).join('')}</div></details>`;
+}
+function openC(id){
+ const c=CLS.find(x=>x.id===id); if(!c)return;
+ const I=info(c);
+ document.getElementById('modal').innerHTML=`<button class="btn x noprint" onclick="closeM()">✕</button>
+ <h2 style="margin:0 0 2px">${esc(c.code)} <span class="tag">${c.cat}</span> <span class="tag ${stCls[I.st]}">${I.st}</span></h2>
+ <div class="mut" style="margin-bottom:10px">${c.ft?'全日':'兼读'} · ${I.cad.t} · 老师：${tchStr(c)}${c.note?' · '+esc(c.note):''}</div>
+ <div id="dres">${result(c)}</div>
+ <details class="noprint" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">修改设定（上课日、外教日、停课日、阶段）</summary><div class="card" style="margin-top:8px">${editor(c,'e_')}
+ <div class="row"><button class="btn pri" onclick="saveC('${c.id}')">保存</button><button class="btn" onclick="window.print()">打印</button><span style="flex:1"></span><button class="btn" onclick="delC('${c.id}')">删除此班</button></div></div></details>`;
+ document.getElementById('mbg').classList.add('on');
+}
+function closeM(){document.getElementById('mbg').classList.remove('on')}
+document.getElementById('mbg').addEventListener('click',e=>{if(e.target.id==='mbg')closeM()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
+function saveC(id){
+ const i=CLS.findIndex(x=>x.id===id); const c=readEd('e_',CLS[i]);
+ if(c.sheetEnd&&(c.start!==CLS[i].start||c.stage!==CLS[i].stage)) c.sheetEnd='';
+ CLS[i]=c; save(); openC(id); render();
+}
+function delC(id){if(!confirm('确定删除这个班？'))return;CLS=CLS.filter(x=>x.id!==id);save();closeM();render()}
+// ---- new class ----
+let NEW={code:'',cat:'加东中国班',ft:false,coh:'',stage:'A1',start:'',last:'C7',wd:[1,3,5],fr:[3],off:[],note:'',tch:[]};
+function vNew(){
+ return `<div class="card"><h2>开班计算</h2><p class="note">填入开课日与上课日，马上算出每个阶段的结课日、考试日，以及中教/外教各上几次。${CFG.noMidFrom.slice(0,7).replace('-',' 年 ')} 月起开班的 A1、A2 只有期末考。</p>
+ <div oninput="calcNew()" onchange="calcNew()">${editor(NEW,'n_')}</div>
+ <div class="row"><button class="btn pri" onclick="addNew()">加入班级列表</button></div></div><div class="card" id="nres"></div>`;
+}
+function calcNew(){
+ const c=readEd('n_',NEW); if(!c.coh)c.coh=c.start; NEW=c;
+ const coh=document.getElementById('n_coh'); if(coh&&!coh.value&&c.start) coh.value=c.start;
+ document.getElementById('nres').innerHTML=result(c);
+}
+function addNew(){
+ const c=readEd('n_',NEW);
+ if(!c.start||!c.wd.length){alert('请填写第一堂课日期与上课日');return}
+ if(!c.code) c.code=c.start.slice(2).replace(/-/g,'');
+ c.id=c.code+(isIntl(c)?'i':'')+(isWest(c)&&!isIntl(c)?'w':'')+'-'+Date.now().toString(36).slice(-4);
+ c.tch=[];c.sheetEnd='';CLS.unshift(c);save();go('list');openC(c.id);
+}
+// ---- exam date change ----
+function chgEx(id,k,type){
+ const c=CLS.find(x=>x.id===id); if(!c)return;
+ const s=calc(c).find(x=>x.k===k);
+ const cur=type==='mid'?(s&&s.mid?s.mid:''):(s?s.fin.join(', '):'');
+ const v=prompt(type==='mid'?`新的期中日期（如 11/20；居家期中填该周任一天）\n留空＝恢复自动计算`:`新的期末日期，两天考请用逗号分开（如 11/20, 11/23）\n留空＝恢复自动计算`,cur);
+ if(v===null)return;
+ c.exOv=c.exOv||{};c.exOv[k]=c.exOv[k]||{};
+ const ds=v.split(/[,，、\s]+/).map(x=>normDate(x,s&&s.start)).filter(Boolean).sort();
+ if(type==='mid'){ if(ds.length) c.exOv[k].mid=ds[0]; else delete c.exOv[k].mid; }
+ else { if(ds.length) c.exOv[k].fin=ds; else delete c.exOv[k].fin; }
+ save(); openC(id); render();
+}
+// ---- exam statistics ----
+const JOURS=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function frDate(d){const day=+d.slice(8);return `${JOURS[wdOf(d)]} ${day===1?'1er':day} ${MOIS[+d.slice(5,7)-1]} ${d.slice(0,4)}`}
+function frDates(a){a=[...new Set(a)].sort();if(a.length===2&&a[0].slice(0,7)===a[1].slice(0,7)){const d=x=>+x.slice(8)===1?'1er':+x.slice(8);return `${JOURS[wdOf(a[0])]} ${d(a[0])} et ${JOURS[wdOf(a[1])]} ${d(a[1])} ${MOIS[+a[1].slice(5,7)-1]} ${a[1].slice(0,4)}`}return a.map(frDate).join(' et ')}
+function shortCode(c){
+ const sc=c.code.slice(2);
+ const dup=CLS.some(x=>x!==c&&x.code===c.code);
+ return (isWest(c)?'加西':'')+sc+(dup&&isIntl(c)?' 国际':'');
+}
+function tFor(c,d,home){
+ if(home){const a=c.tch.filter(t=>!t.zh);return a.length?a:c.tch}
+ const w=wdOf(d);let a=c.tch.filter(t=>t.d&&t.d.includes(w));
+ if(!a.length)a=c.tch.filter(t=>!t.d||!t.d.length);
+ return a.length?a:c.tch;
+}
+const SPLITS=[['CE+EE','CO+EO'],['CO+EO','CE+EE'],['CO+CE','EE+EO']];
+function examList(){
+ const L=[];
+ for(const c of CLS){const I=info(c);for(const s of I.S){
+  if(s.mid) L.push({id:`${c.id}|${s.k}|mid`,c,s,type:'mid',dates:[s.mid],home:s.midHome});
+  if(s.fin.length) L.push({id:`${c.id}|${s.k}|fin`,c,s,type:'fin',dates:s.fin.slice()});
+ }}
+ return L.sort((a,b)=>a.dates[0]<b.dates[0]?-1:a.dates[0]>b.dates[0]?1:0);
+}
+function exName(e){
+ const base=e.s.k==='C5T'?'CLB5':e.s.n;
+ if(e.type==='mid') return base+' 期中'+(e.home?'（居家）':'');
+ return base+' 期末'+(e.s.last?'（结课）':'（升班）');
+}
+function exHint(e){
+ const h=[];
+ if((e.s.k==='A1')||(e.s.k==='A2'&&e.type==='fin')) h.push('口语有朗读/图片，需 share 给学生，群组提醒');
+ if(e.home) h.push('笔试学生回家自己做，不占课');
+ if(['C6','P3'].includes(e.s.k)&&e.type==='fin'&&e.dates.length<2) h.push('CLB6/Level 6 需分两天考');
+ return h;
+}
+function exDays(e){
+ const st=EX[e.id]||{};
+ if(e.home) return [{d:e.dates[0],lab:'',t:tFor(e.c,e.dates[0],1)}];
+ const two=e.dates.length>1, sp=SPLITS[st.sp||0];
+ return e.dates.map((d,i)=>({d,lab:two?sp[i]||'':'',t:tFor(e.c,d)}));
+}
+function mails(ts){return [...new Set(ts.map(t=>CFG.mail[t.id]).filter(Boolean))]}
+function statWeek(){
+ if(!WK){const f=addD(TODAY,(4-wdOf(TODAY)+7)%7);WK=addD(f,10)}
+ return WK;
+}
+const EXCOL=[['mail','邮件给老师'],['recv','老师收到'],['bell','铃铛提醒'],['up','升班通知'],['score','已出成绩']];
+function exRows(list,edit){
+ return list.map((e,i)=>{const st=EX[e.id]||{};const ds=exDays(e);
+  const ts=[...new Map(ds.flatMap(x=>x.t).map(t=>[t.id,t])).values()];
+  const dateCell=ds.map(x=>e.home?md(x.d)+' 当周':mdw(x.d)+(x.lab?' '+x.lab:'')).join('<br>');
+  const tCell=ds.map(x=>x.t.map(t=>esc(t.n)).join('、')+(x.lab?'('+x.lab+')':'')).join('<br>');
+  const mCell=ts.map(t=>CFG.mail[t.id]?esc(CFG.mail[t.id]):`<span class="tag t-w">${esc(t.n)} 无邮箱</span>`).join('<br>');
+  const ck=EXCOL.map(([k])=>{
+   if(k==='up'&&(e.type!=='fin'||e.s.last)) return '<td class="mut">—</td>';
+   return edit?`<td style="text-align:center"><input type="checkbox" ${st[k]?'checked':''} onchange="setEx('${e.id}','${k}',this.checked)"></td>`:`<td style="text-align:center">${st[k]?'✓':''}</td>`}).join('');
+  const hint=exHint(e);
+  return `<tr><td>${i+1}</td><td><b>${esc(shortCode(e.c))}</b></td><td>${exName(e)}${edit&&hint.length?`<div class="note">${hint.map(esc).join('<br>')}</div>`:''}</td><td>${dateCell}${edit&&e.dates.length>1?` <button class="btn sm" title="切换两天的考试项目" onclick="swapEx('${e.id}')">⇄</button>`:''}</td><td>${tCell}</td><td>${mCell}</td>${ck}
+  <td style="min-width:${edit?170:120}px;white-space:normal">${edit?`<input style="width:100%" value="${esc(st.memo||'')}" onchange="setEx('${e.id}','memo',this.value)">`:esc(st.memo||'')}</td>${edit?`<td><button class="btn sm" onclick="mailEx('${e.id}')">写邮件</button></td>`:''}</tr>`}).join('');
+}
+function exTable(list,edit,id){
+ return `<div class="tw"><table ${id?`id="${id}"`:''} border="1" style="border-collapse:collapse"><tr><th>No.</th><th>班级</th><th>考试阶段</th><th>考试日期</th><th>负责老师</th><th>负责老师邮箱</th>${EXCOL.map(x=>`<th>${x[1]}</th>`).join('')}<th>Memo</th>${edit?'<th></th>':''}</tr>${exRows(list,edit)}</table></div>`;
+}
+function setEx(id,k,v){EX[id]=EX[id]||{};EX[id][k]=v;save()}
+function swapEx(id){EX[id]=EX[id]||{};EX[id].sp=((EX[id].sp||0)+1)%SPLITS.length;save();render()}
+function vStat(){
+ const w0=statWeek(), w1=addD(w0,6), f=addD(w0,-10);
+ const all=examList();
+ const inW=all.filter(e=>e.dates.some(d=>d>=w0&&d<=w1)&&(!F.cat||e.c.cat===F.cat));
+ const title=`${+f.slice(5,7)}.${+f.slice(8)}统计（${+w0.slice(5,7)}.${+w0.slice(8)}-${+w1.slice(5,7)}.${+w1.slice(8)}考试）`;
+ const pend=all.filter(e=>{const L=e.dates[e.dates.length-1];return L<TODAY&&L>=addD(TODAY,-35)&&!(EX[e.id]||{}).score&&(!F.cat||e.c.cat===F.cat)});
+ return filt(false)+`<div class="row"><button class="btn" onclick="WK=addD(statWeek(),-7);render()">◀ 上一周</button><button class="btn" onclick="WK=null;render()">下一次统计</button><button class="btn" onclick="WK=addD(statWeek(),7);render()">下一周 ▶</button>
+ <span class="note">每周五统计「下下周」的考试；周一到周日。</span></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${title}</h2><span><button class="btn" onclick="copyStat('${esc(title)}')">复制表格（贴到文档）</button></span></div>
+ ${inW.length?exTable(inW,1):'<p class="mut">这一周没有考试</p>'}
+ <div id="statCopy" style="position:absolute;left:-9999px;top:0">${inW.length?`<p>${esc(title)}</p>`+exTable(inW,0):''}</div></div>
+ <div class="card"><h2>考完还没出成绩（近 5 周，${pend.length}）</h2><p class="note">勾「已出成绩」后就会从这里消失。</p>${pend.length?exTable(pend,1):'<span class="mut">都已出成绩</span>'}</div>`;
+}
+function copyHtml(el,plain){
+ const html=el.innerHTML;
+ if(navigator.clipboard&&window.ClipboardItem){
+  navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]).then(()=>toast('已复制'),()=>fallbackCopy(el));
+ } else fallbackCopy(el);
+}
+function fallbackCopy(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');toast('已复制')}catch(e){alert('请手动选取复制')}s.removeAllRanges()}
+function toast(t){let d=document.getElementById('toast');if(!d){d=document.createElement('div');d.id='toast';d.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 16px;border-radius:8px;z-index:99;font-size:14px';document.body.appendChild(d)}d.textContent=t;d.style.display='block';clearTimeout(d._t);d._t=setTimeout(()=>d.style.display='none',1600)}
+function copyStat(){const el=document.getElementById('statCopy');copyHtml(el,el.innerText)}
+// ---- email ----
+function tplKey(e){
+ const k=e.s.k;
+ if(e.type==='mid') return {A1:'A1M',P1:'A1M',A2:'A2M',P2:'A2M',P3:'N5'}[k];
+ return {A1:'A1F',P1:'P1F',A2:'A2F',P2:'P2F',C5T:'N5',C6:'N6',P3:'N6',C7:'N7'}[k];
+}
+function buildMail(e){
+ const key=tplKey(e); if(!key) return null;
+ const ps=JSON.parse(JSON.stringify(TPL[key]));
+ const label=shortCode(e.c).replace(' 国际','');
+ const ds=exDays(e); const ts=[...new Map(ds.flatMap(x=>x.t).map(t=>[t.id,t])).values()];
+ const names=ts.map(t=>t.n).join(' et ');
+ const lastD=e.dates[e.dates.length-1];
+ const actual={A1:'A1',P1:'Phase 1',A2:'A2',P2:'Phase 2'}[e.s.k]||'';
+ const dayFor=sk=>{const hit=ds.filter(x=>!x.lab||sk.split('+').some(p=>x.lab.includes(p)));return frDates((hit.length?hit:ds).map(x=>x.d))};
+ for(const p of ps){
+  for(let i=0;i<p.length;i++){const sg=p[i];let t=sg[0];
+   t=t.replace(/班級名稱/g,label).replace(/班級/g,label);
+   t=t.replace(/A1 mid\s+or Phase 1 mid\s*/,actual+' mid').replace(/A2 Mid\s+or Phase 2 Midl?\s*/,actual+' Mid');
+   t=t.replace(/Bonjour 老師/,'Bonjour '+names);
+   if(t.includes('[日期]')){t=t.replace('[日期]',e.home?'semaine du '+frDate(e.dates[0]):frDate(lastD)); if(e.home&&i>0&&/le $/.test(p[i-1][0]))p[i-1][0]=p[i-1][0].replace(/le $/,'la ');}
+   t=t.replace(/日期/,'le '+frDate(lastD));
+   if(CFG.host) t=t.replace(/_{3,}|＿{3,}/,CFG.host);
+   sg[0]=t;
+  }
+  if(/^\s*Bonjour/.test(p.map(x=>x[0]).join('')))p.forEach(x=>x[0]=x[0].replace('老師',names));
+  const j=p.map(x=>x[0]).join('');
+  if(/^\s*:?\s*Compréhension Orale \+ Compréhension Écrite/.test(j)&&key[0]==='N'){const pre=dayFor('CO+CE');p[0][0]=pre+' : '+p[0][0].replace(/^\s*:?\s*/,'')}
+  else if(/^\s*:\s*Expression Écrite \+ Expression Orale/.test(j)){const pre=dayFor('EE+EO');p[0][0]=pre+' '+p[0][0].replace(/^\s*/,'')}
+ }
+ const at=ps.findIndex(p=>p.map(x=>x[0]).join('').includes('MLI】'));
+ const notes=ps.slice(0,at).map(p=>p.map(x=>x[0]).join('')).filter(x=>x.trim());
+ const subj=ps[at].map(x=>x[0]).join('').trim();
+ const body=ps.slice(at+1);
+ while(body.length&&!body[0].map(x=>x[0]).join('').trim()) body.shift();
+ const html=body.map(p=>{const inner=p.map(([t,b,l])=>{let h=esc(t).replace(/\n/g,'<br>');if(b)h=`<b>${h}</b>`;if(l)h=`<a href="${esc(l)}">${h}</a>`;return h}).join('');return `<p style="margin:0">${inner||'<br>'}</p>`}).join('');
+ const text=body.map(p=>p.map(([t,b,l])=>l&&l!==t.trim()?`${t} (${l})`:t).join('')).join('\n');
+ return {to:mails(ts),subj,html,text,notes,missing:ts.filter(t=>!CFG.mail[t.id]).map(t=>t.n)};
+}
+let CURM=null;
+function mailEx(id){
+ const e=examList().find(x=>x.id===id); if(!e)return;
+ const m=buildMail(e); CURM=m;
+ const st=EX[id]||{};
+ document.getElementById('modal').innerHTML=`<button class="btn x" onclick="closeM()">✕</button><h2 style="margin:0 0 8px">${esc(shortCode(e.c))} ${exName(e)} · 考试邮件</h2>
+ ${!m?'<p class="mut">这个阶段没有邮件模板。</p>':`
+ ${m.notes.map(n=>`<div class="warnbox">${esc(n)}</div>`).join('')}
+ ${m.missing.length?`<div class="warnbox">${esc(m.missing.join('、'))} 没有邮箱，请到「设置」补上</div>`:''}
+ <div class="card"><div class="small mut">收件人</div><div style="word-break:break-all">${esc(m.to.join(', '))||'—'}</div>
+ <div class="small mut" style="margin-top:8px">主旨</div><div><b>${esc(m.subj)}</b></div></div>
+ <div class="card" id="mailBody" style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">${m.html}</div>
+ <div class="row"><button class="btn" onclick="cp(CURM.to.join(', '))">复制收件人</button><button class="btn" onclick="cp(CURM.subj)">复制主旨</button><button class="btn pri" onclick="copyHtml(document.getElementById('mailBody'),CURM.text)">复制内文（保留粗体与链接）</button>
+ <a class="btn" href="mailto:${encodeURIComponent(m.to.join(','))}?subject=${encodeURIComponent(m.subj)}&body=${encodeURIComponent(m.text)}">用邮件程序打开</a>
+ <label class="btn"><input type="checkbox" ${st.mail?'checked':''} onchange="setEx('${id}','mail',this.checked);if(VIEW==='stat')render()"> 已发邮件给老师</label></div>
+ <p class="note">只替换了模板里的班级名称、老师、日期${CFG.host?'、Code Host':''}，其余文字与原模板一致。</p>`}`;
+ document.getElementById('mbg').classList.add('on');
+}
+function cp(t){if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('已复制'),()=>prompt('复制：',t));else prompt('复制：',t)}
+// ---- settings ----
+function vSet(){
+ const ks=Object.keys(DEF_CFG.st);
+ return `<div class="card"><h2>每阶段课次与考试位置</h2><p class="note">改了之后所有班级会重新计算。期中＝第几次课；期末＝最后几次课（CLB 与 Phase 3 的 6 小时期末占最后 2 次）。</p><div class="tw"><table><tr><th>阶段</th><th>课次</th><th>期中在第几次（0=无）</th><th>期末占最后几次</th><th>受“9 月起无期中”规则影响</th></tr>
+ ${ks.map(k=>{const s=CFG.st[k];return `<tr><td><span class="tag st" style="background:${color(k)}">${s.n}</span></td><td><input type="number" min="1" style="width:70px" value="${s.s}" onchange="CFG.st['${k}'].s=+this.value||1;save()"></td><td><input type="number" min="0" style="width:70px" value="${s.mid}" onchange="CFG.st['${k}'].mid=+this.value||0;save()"></td><td><input type="number" min="0" style="width:70px" value="${s.fin}" onchange="CFG.st['${k}'].fin=+this.value||0;save()"></td><td>${s.noMid?'是':'—'}</td></tr>`}).join('')}</table></div>
+ <div class="row" style="margin-top:10px"><label class="f">此日期起开班的 A1、A2 没有期中<input type="date" value="${CFG.noMidFrom}" onchange="CFG.noMidFrom=this.value;save()"></label></div></div>
+ <div class="card"><h2>假期（全部班级跳过）</h2><textarea id="hol">${CFG.hol.join('\n')}</textarea>
+ <h2 style="margin-top:12px">加西额外假期（只有加西班跳过）</h2><textarea id="holW" style="min-height:70px">${CFG.holW.join('\n')}</textarea>
+ <div class="row" style="margin-top:8px"><button class="btn pri" onclick="saveHol()">保存假期</button></div></div>
+ <div class="card"><h2>老师邮箱（考试统计与邮件用）</h2><p class="note">来自考试统计文档；改了自动保存。</p>
+ <div class="tw"><table><tr><th>老师</th><th>邮箱</th></tr>${tchAll().map(([id,n])=>`<tr><td>${esc(n)}</td><td><input style="width:300px;max-width:70vw" value="${esc(CFG.mail[id]||'')}" onchange="if(this.value.trim())CFG.mail['${id}']=this.value.trim();else delete CFG.mail['${id}'];save()"></td></tr>`).join('')}</table></div>
+ <div class="row" style="margin-top:10px"><label class="f">A1–Phase 2 邮件模板的 Code Host（留空则保留 _______）<input value="${esc(CFG.host)}" onchange="CFG.host=this.value.trim();save()"></label></div></div>
+ <div class="card"><h2>资料</h2><p class="note">资料存在这台电脑的浏览器里。换电脑或备份时请先导出。</p><div class="row">
+ <button class="btn" onclick="exportJ()">导出备份（JSON）</button><label class="btn">导入备份<input type="file" accept=".json" style="display:none" onchange="importJ(this)"></label>
+ <button class="btn" onclick="exportCSV()">导出班级表（CSV）</button>
+ <button class="btn" onclick="if(confirm('改回 10/13 课表的班级与默认设定？你自己加的班会消失。')){try{localStorage.removeItem(SKEY)}catch(e){};load();render()}">恢复为 10/13 课表</button></div></div>`;
+}
+function tchAll(){const m=new Map();CLS.forEach(c=>c.tch.forEach(t=>m.set(t.id,t.n)));Object.keys(CFG.mail).forEach(id=>{if(!m.has(id))m.set(id,MAILSEED.names[id]||id)});return [...m.entries()].sort((a,b)=>a[1].localeCompare(b[1]))}
+function saveHol(){const rd=id=>document.getElementById(id).value.split(/\s+/).map(s=>normDate(s)).filter(Boolean).sort();CFG.hol=[...new Set(rd('hol'))];CFG.holW=[...new Set(rd('holW'))];save();render();alert('已保存')}
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+function exportJ(){dl('MLI班级管理备份_'+TODAY+'.json',JSON.stringify({cfg:CFG,cls:CLS,ex:EX,ver:SEED_VER},null,1),'application/json')}
+function importJ(inp){const f=inp.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.cls)throw 0;CFG=o.cfg||CFG;CLS=o.cls;EX=o.ex||EX;save();render();alert('已导入 '+CLS.length+' 个班')}catch(e){alert('文件格式不对')}})}
+function exportCSV(){
+ const H=['班号','类型','形式','上课日','外教日','状态','当前阶段','本阶段开始','本阶段结束','期中','期末','下一阶段','下一阶段开始','全程结课','老师'];
+ const r=CLS.map(c=>{const I=info(c),s=I.cur||{};return [c.code,c.cat,c.ft?'全日':'兼读',wdStr(c.wd),wdStr(c.fr||[]),I.st,s.n||'',s.start||'',s.end||'',s.mid?midStr(s):'',(s.fin||[]).join(' / '),I.nxt?I.nxt.n:'',I.nxt?I.nxt.start:'',I.last?I.last.end:'',c.tch.map(t=>t.n).join(' / ')]});
+ dl('MLI班级_'+TODAY+'.csv','﻿'+[H,...r].map(a=>a.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv')}
+load();nav();render();
+</script>
+</body>
+</html>
