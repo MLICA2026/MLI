@@ -141,7 +141,7 @@ const isNew=c=>!isIntl(c)&&(c.coh||'')>=CFG.noMidFrom;
 // 430 小时制（开班日早于 oldBefore 的中国班）：部分阶段课次不同，见设置
 const isOld=c=>!isIntl(c)&&(c.coh||'')<(CFG.oldBefore||'2026-02-01');
 const pathOf=c=>isIntl(c)?PATH.intl:(isNew(c)?PATH.cn.filter(k=>k!=='C5G'):PATH.cn);
-let CFG,CLS,EX,VIEW='quick',QC='',F={cat:'',st:'',q:''},GW={m:6,off:-1},WK=null,EXM='30',PM=TODAY_M(),PT='',PP='m';
+let CFG,CLS,EX,VIEW='ov',QC='',F={cat:'',st:'',q:''},GW={m:6,off:-1},WK=null,EXM='30',PM=TODAY_M(),PT='',PP='m';
 const SKEY='mli-cm-v6';
 function sGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function sSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -351,7 +351,7 @@ function filtered(){
  return CLS.filter(c=>(!F.cat||c.cat===F.cat)&&(!F.q||(c.code+' '+c.tch.map(t=>t.n).join(' ')+' '+(c.note||'')).toLowerCase().includes(F.q.toLowerCase()))).map(c=>({c,I:info(c)})).filter(x=>!F.st||x.I.st===F.st);
 }
 // ---- nav ----
-const VIEWS=[['quick','总览'],['leave','登记停课/请假'],['ov','提醒'],['list','班级列表'],['gantt','时间轴'],['stat','考试统计'],['new','开班计算'],['pay','老师月历'],['set','设置']];
+const VIEWS=[['ov','提醒'],['leave','登记停课/请假'],['list','班级列表'],['gantt','时间轴'],['stat','考试统计'],['new','开班计算'],['pay','老师月历'],['set','设置']];
 function nav(){document.getElementById('nav').innerHTML=VIEWS.map(([k,n])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}
 function go(v){VIEW=v;nav();render();window.scrollTo(0,0)}
 function filt(withSt=true){
@@ -373,12 +373,11 @@ function wdHtml(c){return c.wd.map(i=>{const a=tOfDay(c,i);const col=a.length===
 function render(){
  const m=document.getElementById('main');
  setTimeout(()=>{if(DEMO&&!document.getElementById('demoBar')){const b=document.createElement('div');b.id='demoBar';b.className='warnbox noprint';b.innerHTML='<b>练习模式</b>：多了一个「练习班」可以随便试，登记请假不会真的送出、不会寄信，改什么都不会存到共用。按左上角「结束练习」就全部恢复原样。';m.prepend(b)}},0);
- if(VIEW==='quick') m.innerHTML=vQuick();
+ if(VIEW==='quick'||VIEW==='exam'){VIEW='ov';nav();}
  if(VIEW==='leave') {m.innerHTML=vLeave();lvRestore();lvInit();lvRestore()}
  if(VIEW==='ov') m.innerHTML=vOv();
  if(VIEW==='list') m.innerHTML=vList();
  if(VIEW==='gantt') m.innerHTML=vGantt();
- if(VIEW==='exam'){VIEW='quick';nav();m.innerHTML=vQuick()}
  if(VIEW==='stat') m.innerHTML=vStat();
  if(VIEW==='new') {m.innerHTML=vNew();calcNew()}
  if(VIEW==='set') m.innerHTML=vSet();
@@ -394,21 +393,25 @@ function allEvents(){
  return ev.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0);
 }
 function vOv(){
- const X=CLS.map(c=>({c,I:info(c)}));
- const h30=addD(TODAY,30), h14=addD(TODAY,14);
- let k=`<div class="grid4">`+CATS.map(cat=>{
+ const all=!QC;const X=CLS.map(c=>({c,I:info(c)})).filter(x=>all||x.c.cat===QC);
+ const h30=addD(TODAY,30), h7=addD(TODAY,7);
+ const chips=['',...CATS].map(k=>`<button class="chip ${QC===k?'on':''}" style="font-size:15px;padding:8px 16px" onclick="QC='${k}';render()">${k||'全部'}</button>`).join('');
+ const k=`<div class="grid4" style="margin-bottom:14px">`+CATS.filter(cat=>all||cat===QC).map(cat=>{
   const a=X.filter(x=>x.c.cat===cat);
   const on=a.filter(x=>x.I.st==='进行中').length, up=a.filter(x=>x.I.st==='即将开课').length;
-  const ex=a.filter(x=>x.I.S.some(s=>(s.mid&&s.mid>=TODAY&&s.mid<=h14)||s.fin.some(d=>d>=TODAY&&d<=h14))).length;
-  return `<div class="kpi" onclick="F.cat='${cat}';F.st='';go('list')"><div class="l">${cat}</div><b>${on}</b><small>进行中 · 即将开课 ${up} · 两周内考试 ${ex}</small></div>`}).join('')+`</div>`;
- const ev=allEvents().filter(e=>e.d>=TODAY&&e.d<=h30);
- const exams=ev.filter(e=>!e.tr);
- const tr=ev.filter(e=>e.tr);
+  const e30=examList().filter(e=>e.c.cat===cat&&e.dates.some(d=>d>=TODAY&&d<=h30)).length,e7=examList().filter(e=>e.c.cat===cat&&e.dates.some(d=>d>=TODAY&&d<=h7)).length;
+  return `<div class="kpi" onclick="F.cat='${cat}';F.st='';go('list')"><div class="l">${cat}</div><b>${on}</b><small>进行中 · 即将开课 ${up}<br>30 天内考试 ${e30}（7 天内 ${e7}）</small></div>`}).join('')+`</div>`;
+ const ev=allEvents().filter(e=>all||e.c.cat===QC);
+ const lim=addD(addD(TODAY.slice(0,8)+'01',62).slice(0,8)+'01',-1);const exAll=ev.filter(e=>!e.tr&&e.d>=addD(TODAY,-7));const exams=window.EXALL?exAll:exAll.filter(e=>e.d<=lim);const more=exAll.length-exams.length;
+ const by={};exams.forEach(e=>{const m=e.d.slice(0,7);(by[m]=by[m]||[]).push(e)});
+ const cal=Object.keys(by).map(m=>`<div class="card"><h2>考试日历 · ${m.slice(0,4)} 年 ${+m.slice(5)} 月（${by[m].length}）</h2>${evTable(by[m])}</div>`).join('')||'<div class="card"><span class="mut">没有考试</span></div>';
+ const calX=cal+(more?`<div class="row" style="margin:-6px 0 14px"><button class="btn" onclick="EXALL=1;render()">显示之后的考试（还有 ${more} 场）</button></div>`:window.EXALL?`<div class="row" style="margin:-6px 0 14px"><button class="btn" onclick="EXALL=0;render()">只看到下个月</button></div>`:'');
+ const tr=ev.filter(e=>e.tr&&e.d>=TODAY&&e.d<=h30);
  const warn=X.filter(x=>x.I.warns.length&&x.I.st!=='已结课');
- return k+`<div class="card" style="margin-top:14px"><h2>未来 30 天考试（${exams.length}）</h2>${evTable(exams)}</div>
+ return `<div class="row">${chips}</div>`+k+`${calX}
+<div class="card"><h2>需要核对（${warn.length}）</h2>${warn.length?`<div class="tw"><table><tr><th>班号</th><th>类型</th><th>说明</th></tr>${warn.map(x=>`<tr class="click" onclick="openC('${x.c.id}')"><td><b>${x.c.code}</b></td><td>${x.c.cat}</td><td style="white-space:normal">${x.I.warns.map(esc).join('<br>')}</td></tr>`).join('')}</table></div>`:'<span class="mut">没有问题</span>'}</div>
  <div class="card"><h2>未来 30 天开课 / 换阶段（${tr.length}）</h2><p class="note">换阶段时请确认新阶段的中教、外教安排。</p>${evTable(tr,1)}</div>
- <div class="card"><h2>停课／请假记录</h2><p class="note">从登记表同步；在「设置」按同步。</p>${leaveTable()}</div>
- <div class="card"><h2>需要核对（${warn.length}）</h2>${warn.length?`<div class="tw"><table><tr><th>班号</th><th>类型</th><th>说明</th></tr>${warn.map(x=>`<tr class="click" onclick="openC('${x.c.id}')"><td><b>${x.c.code}</b></td><td>${x.c.cat}</td><td style="white-space:normal">${x.I.warns.map(esc).join('<br>')}</td></tr>`).join('')}</table></div>`:'<span class="mut">没有问题</span>'}</div>`;
+ <div class="card"><h2>停课／请假记录</h2><p class="note">从登记表自动同步。</p>${leaveTable()}</div>`;
 }
 function evTable(ev,tr){
  if(!ev.length) return '<span class="mut">无</span>';
