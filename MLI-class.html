@@ -34,7 +34,7 @@ main{max-width:1280px;margin:0 auto;padding:16px}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
 th{color:var(--mut);font-weight:600;font-size:12px;background:var(--card);position:sticky;top:0}
-tr.click{cursor:pointer}tr.on td{background:var(--acc2)}
+tr.pastrow td{background:#ececec!important;color:#8a8a8a}tr.pastrow td .tag.st{opacity:.55}tr.click{cursor:pointer}tr.on td{background:var(--acc2)}
 tr.click:hover td{background:var(--acc2)}
 .tag{display:inline-block;border-radius:6px;padding:0 6px;font-size:12px;line-height:20px;background:var(--bg);border:1px solid var(--line)}
 .st{color:#fff;border:none}
@@ -367,7 +367,7 @@ function vOv(){
 }
 function evTable(ev,tr){
  if(!ev.length) return '<span class="mut">无</span>';
- return `<div class="tw"><table><tr><th>日期</th><th>班号</th><th>类型</th><th>${tr?'阶段':'考试'}</th><th>上课日</th><th>老师</th></tr>${ev.map(e=>`<tr class="click" onclick="openC('${e.c.id}')"><td>${mdw(e.d)}${e.d===TODAY?' <span class="tag t-r">今天</span>':''}</td><td><b>${e.c.code}</b></td><td>${e.c.cat}</td><td><span class="tag st" style="background:${color(e.s.k)}">${e.s.n}</span> ${tr?'开始':e.t}</td><td>${wdHtml(e.c)}</td><td>${tchStr(e.c)}</td></tr>`).join('')}</table></div>`;
+ return `<div class="tw"><table><tr><th>日期</th><th>班号</th><th>类型</th><th>${tr?'阶段':'考试'}</th><th>上课日</th><th>老师</th></tr>${ev.map(e=>`<tr class="click${e.d<TODAY?' pastrow':''}" onclick="openC('${e.c.id}')"><td>${mdw(e.d)}${e.d===TODAY?' <span class="tag t-r">今天</span>':''}</td><td><b>${e.c.code}</b></td><td>${e.c.cat}</td><td><span class="tag st" style="background:${color(e.s.k)}">${e.s.n}</span> ${tr?'开始':e.t}</td><td>${wdHtml(e.c)}</td><td>${tchStr(e.c)}</td></tr>`).join('')}</table></div>`;
 }
 function vList(){
  const L=filtered();
@@ -413,8 +413,8 @@ function editor(c,pfx){
  const path=pathOf(c);
  return `<div class="form">
  <label class="f">班号<input id="${pfx}code" value="${esc(c.code)}"></label>
- <label class="f">类型<select id="${pfx}cat">${CATS.map(k=>`<option ${c.cat===k?'selected':''}>${k}</option>`).join('')}</select></label>
- <label class="f">形式<select id="${pfx}ft"><option value="0" ${!c.ft?'selected':''}>兼读（2中+1外）</option><option value="1" ${c.ft?'selected':''}>全日（3中+2外）</option></select></label>
+ <label class="f">类型<select id="${pfx}cat" data-prev="${esc(c.cat)}" onchange="catChg('${pfx}')">${CATS.map(k=>`<option ${c.cat===k?'selected':''}>${k}</option>`).join('')}</select></label>
+ <label class="f">形式<select id="${pfx}ft"><option value="0" ${!c.ft?'selected':''}>${isIntl(c)?'兼读':'兼读（2中+1外）'}</option><option value="1" ${c.ft?'selected':''}>${isIntl(c)?'全日':'全日（3中+2外）'}</option></select></label>
  <label class="f">班级开班日（判断有无期中）<input type="date" id="${pfx}coh" value="${c.coh||''}"></label>
  <label class="f">从哪个阶段算起<select id="${pfx}stage">${path.map(k=>`<option value="${k}" ${c.stage===k?'selected':''}>${CFG.st[k].n}</option>`).join('')}</select></label>
  <label class="f">该阶段第一堂课<input type="date" id="${pfx}start" value="${c.start||''}"></label>
@@ -426,7 +426,7 @@ function editor(c,pfx){
  <div class="note" style="margin-top:4px"><span class="zh">红 = 中教日</span>　<span class="fr">蓝 = 外教日</span>　国际班全部算外教</div></div>
  <label class="f">本班停课/请假日（每行一个日期，如 2026-11-20 或 11/20）<textarea id="${pfx}off" style="min-height:60px">${(c.off||[]).join('\n')}</textarea></label>
  <label class="f">备注<input id="${pfx}note" value="${esc(c.note||'')}"></label>
- ${pfx==='n_'?'':`<div><div class="note" style="margin-bottom:4px"><b>老师</b>　上课日写星期几（如 一三五）；换老师：旧老师填「到」、新老师填「从」。分科只有 CLB／Phase 3 期末要填。</div><div id="${pfx}tch">${tchRows(pfx,(c.tch||[]).map(t=>Object.assign({},t)))}</div><button type="button" class="btn sm" onclick="addT('${pfx}')">＋ 添加老师</button></div>`}
+ ${`<div><div class="note" style="margin-bottom:4px"><b>老师</b>　上课日写星期几（如 一三五）；换老师：旧老师填「到」、新老师填「从」。分科只有 CLB／Phase 3 期末要填。</div><div id="${pfx}tch">${tchRows(pfx,(c.tch||[]).map(t=>Object.assign({},t)))}</div><button type="button" class="btn sm" onclick="addT('${pfx}')">＋ 添加老师</button></div>`}
  </div>`;
 }
 
@@ -470,7 +470,7 @@ function readEd(pfx,base){
  const c=Object.assign({},base,{code:g('code').value.trim(),cat:g('cat').value,ft:g('ft').value==='1',coh:g('coh').value||start,stage:g('stage').value,start,last:g('last').value,a0:+g('a0').value||3,wd,fr,off,note:g('note').value,unset:false});
  const path=pathOf(c); if(!path.includes(c.stage))c.stage=path[0]; if(!path.includes(c.last))c.last=path[path.length-1];
  if(isIntl(c)) c.fr=c.wd.slice();
- if(document.getElementById(pfx+'tch')) c.tch=readT(pfx).filter(t=>t.n);
+ if(document.getElementById(pfx+'tch')) c.tch=readT(pfx);
  return c;
 }
 const MIXK=['A1','A2','C5G'];
@@ -529,15 +529,24 @@ function closeM(){document.getElementById('mbg').classList.remove('on')}
 document.getElementById('mbg').addEventListener('click',e=>{if(e.target.id==='mbg')closeM()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
 function saveC(id){
- const i=CLS.findIndex(x=>x.id===id); const c=readEd('e_',CLS[i]);
+ const i=CLS.findIndex(x=>x.id===id); const c=readEd('e_',CLS[i]); c.tch=(c.tch||[]).filter(t=>t.n);
  if(c.sheetEnd&&(c.start!==CLS[i].start||c.stage!==CLS[i].stage)) c.sheetEnd='';
  CLS[i]=c; save(); openC(id); render();
 }
 function delC(id){if(!confirm('确定删除这个班？'))return;CLS=CLS.filter(x=>x.id!==id);save();closeM();render()}
 // ---- new class ----
-let NEW={code:'',cat:'加东中国班',ft:false,coh:'',stage:'A1',start:'',last:'C7',wd:[1,3,5],fr:[3],off:[],note:'',tch:[]};
+const newDef=()=>({code:'',cat:'加东中国班',ft:false,coh:'',stage:'A1',start:'',last:'C7',wd:[1,3,5],fr:[3],off:[],note:'',tch:[{n:'',zh:true,d:[1,5]},{n:'',zh:false,d:[3]}]});
+let NEW=newDef();
+function catChg(pfx){
+ const base=pfx==='n_'?NEW:(RESC||NEW);
+ const was=String(document.getElementById(pfx+'cat').dataset.prev||'').includes('国际');const c=readEd(pfx,base);const now=isIntl(c);
+ if(now&&!was){c.wd=[0,1,2,3];c.fr=[0,1,2,3];c.stage='P1';c.last='P3';c.tch=[{n:'',zh:false,d:[]}]}
+ if(!now&&was){c.wd=[1,3,5];c.fr=[3];c.stage='A1';c.last='C7';c.tch=[{n:'',zh:true,d:[1,5]},{n:'',zh:false,d:[3]}]}
+ if(pfx==='n_'){NEW=c;render();calcNew();}
+ else{const card=[...document.querySelectorAll('#modal details')].pop().querySelector('.card');const row=card.querySelector(':scope > .row').outerHTML;card.innerHTML=editor(c,'e_')+row}
+}
 function vNew(){
- return `<div class="card"><h2>开班计算</h2><p class="note">填入开课日与上课日，马上算出每个阶段的结课日和考试日。按「加入班级列表」后，再填老师。${CFG.noMidFrom.slice(0,7).replace('-',' 年 ')} 月起开班的 A1、A2 只有期末考。</p>
+ return `<div class="card"><h2>开班计算</h2><p class="note">填入开课日与上课日，马上算出每个阶段的结课日和考试日。老师填在下面，填好按「加入班级列表」。${CFG.noMidFrom.slice(0,7).replace('-',' 年 ')} 月起开班的 A1、A2 只有期末考。</p>
  <div oninput="calcNew()" onchange="calcNew()">${editor(NEW,'n_')}</div>
  <div class="row"><button class="btn pri" onclick="addNew()">加入班级列表</button></div></div><div class="card" id="nres"></div>`;
 }
@@ -551,7 +560,7 @@ function addNew(){
  if(!c.start||!c.wd.length){alert('请填写第一堂课日期与上课日');return}
  if(!c.code) c.code=c.start.slice(2).replace(/-/g,'');
  c.id=c.code+(isIntl(c)?'i':'')+(isWest(c)&&!isIntl(c)?'w':'')+'-'+Date.now().toString(36).slice(-4);
- c.tch=[];c.sheetEnd='';CLS.unshift(c);save();go('list');openC(c.id);const dt=[...document.querySelectorAll('#modal details')].pop();if(dt){dt.open=true;dt.scrollIntoView()}
+ c.tch=(c.tch||[]).filter(t=>t.n);c.sheetEnd='';CLS.unshift(c);save();NEW=newDef();go('list');openC(c.id);const dt=[...document.querySelectorAll('#modal details')].pop();if(dt){dt.open=true;dt.scrollIntoView()}
 }
 // ---- exam date change ----
 function chgEx(id,k,type){
@@ -625,7 +634,7 @@ function exRows(list,edit){
    if(k==='up'&&(e.type!=='fin'||e.s.last)) return '<td class="mut">—</td>';
    return edit?`<td style="text-align:center"><input type="checkbox" ${st[k]?'checked':''} onchange="setEx('${e.id}','${k}',this.checked)"></td>`:`<td style="text-align:center">${st[k]?'✓':''}</td>`}).join('');
   const hint=exHint(e);
-  return `<tr><td>${i+1}</td><td><b>${esc(shortCode(e.c))}</b></td><td>${exName(e)}${edit&&hint.length?`<div class="note">${hint.map(esc).join('<br>')}</div>`:''}</td><td>${dateCell}${edit&&e.dates.length>1?` <button class="btn sm" title="切换两天的考试项目" onclick="swapEx('${e.id}')">⇄</button>`:''}</td><td>${tCell}</td>${ck}
+  return `<tr${e.dates[e.dates.length-1]<TODAY?' class="pastrow"':''}><td>${i+1}</td><td><b>${esc(shortCode(e.c))}</b></td><td>${exName(e)}${edit&&hint.length?`<div class="note">${hint.map(esc).join('<br>')}</div>`:''}</td><td>${dateCell}${edit&&e.dates.length>1?` <button class="btn sm" title="切换两天的考试项目" onclick="swapEx('${e.id}')">⇄</button>`:''}</td><td>${tCell}</td>${ck}
   <td style="min-width:${edit?170:120}px;white-space:normal">${edit?`<input style="width:100%" value="${esc(st.memo||'')}" onchange="setEx('${e.id}','memo',this.value)">`:esc(st.memo||'')}</td></tr>`}).join('');
 }
 function exTable(list,edit,id){
