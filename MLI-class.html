@@ -138,7 +138,7 @@ const PATH={cn:['A1','A2','C5G','C5T','C6','C7'],intl:['P1','P2','P3']};
 // 新制（开班日 ≥ 新制起始日）的中国班：没有 CLB5 语法阶段，A2 多 3 堂（34→37）
 const isNew=c=>!isIntl(c)&&(c.coh||'')>=CFG.noMidFrom;
 const pathOf=c=>isIntl(c)?PATH.intl:(isNew(c)?PATH.cn.filter(k=>k!=='C5G'):PATH.cn);
-let CFG,CLS,EX,VIEW='quick',QC='',F={cat:'',st:'',q:''},GW={m:6,off:-1},WK=null,EXM='30',PM=TODAY_M(),PT='';
+let CFG,CLS,EX,VIEW='quick',QC='',F={cat:'',st:'',q:''},GW={m:6,off:-1},WK=null,EXM='30',PM=TODAY_M(),PT='',PP='m';
 const SKEY='mli-cm-v6';
 function sGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function sSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -181,6 +181,7 @@ async function boot(){
  if(!CFG.leaveApi){SHARE='<span class="tag">只在这台电脑</span>';shareChip();return}
  try{
   const j=await (await fetch(CFG.leaveApi+'?action=state')).json();
+  if(!('state' in j)){SHARE='<span class="tag t-r">Apps Script 还是旧版，改动只存在这台电脑</span>';shareChip();render();return}
   ADMIN=true;
   if(j.state&&j.state.cls)useState(j.state);
   await loadMail(true);
@@ -425,9 +426,28 @@ function editor(c,pfx){
  <div class="note" style="margin-top:4px"><span class="zh">红 = 中教日</span>　<span class="fr">蓝 = 外教日</span>　国际班全部算外教</div></div>
  <label class="f">本班停课/请假日（每行一个日期，如 2026-11-20 或 11/20）<textarea id="${pfx}off" style="min-height:60px">${(c.off||[]).join('\n')}</textarea></label>
  <label class="f">备注<input id="${pfx}note" value="${esc(c.note||'')}"></label>
- ${(c.tch||[]).filter(t=>!t.to||t.to>=TODAY).length?`<div><div class="note">老师分科（CLB／Phase 3 期末：每位老师在最后一堂考自己负责的科目）</div><div class="row" style="margin:4px 0 0">${(c.tch||[]).map((t,i)=>(!t.to||t.to>=TODAY)?`<label class="f">${esc(t.n)}（${wdStr(t.d||[])||'—'}）<select id="${pfx}sk${i}"><option value="">不分科</option>${['CO+EO','CE+EE','CO+CE','EE+EO'].map(v=>`<option ${t.sk===v?'selected':''}>${v}</option>`).join('')}</select></label>`:'').join('')}</div></div>`:''}
+ ${pfx==='n_'?'':`<div><div class="note" style="margin-bottom:4px"><b>老师</b>　上课日写星期几（如 一三五）；换老师：旧老师填「到」、新老师填「从」。分科只有 CLB／Phase 3 期末要填。</div><div id="${pfx}tch">${tchRows(pfx,(c.tch||[]).map(t=>Object.assign({},t)))}</div><button type="button" class="btn sm" onclick="addT('${pfx}')">＋ 添加老师</button></div>`}
  </div>`;
 }
+
+let EDT={};
+function tKnown(){const m={};CLS.forEach(c=>c.tch.forEach(t=>{if(t.n&&!m[t.n])m[t.n]={id:t.id,zh:!!t.zh}}));return m}
+function tchRows(pfx,L){EDT[pfx]=L;const names=[...new Set([...allTeachers(),...Object.keys(tKnown())])].sort((a,b)=>a.localeCompare(b));
+ return `<datalist id="${pfx}tnames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`+(L.length?`<div class="tw"><table><tr><th>老师</th><th>中/外</th><th>上课日</th><th>从</th><th>到</th><th>分科</th><th></th></tr>${L.map((t,i)=>`<tr${t.to&&t.to<TODAY?' style="opacity:.55"':''}>
+ <td><input id="${pfx}tn${i}" list="${pfx}tnames" value="${esc(t.n||'')}" style="width:130px" onchange="tAuto('${pfx}',${i})"></td>
+ <td><select id="${pfx}tz${i}"><option value="1" ${t.zh?'selected':''}>中教</option><option value="0" ${!t.zh?'selected':''}>外教</option></select></td>
+ <td><input id="${pfx}td${i}" value="${wdStr(t.d||[])}" placeholder="一三五" style="width:80px"></td>
+ <td><input type="date" id="${pfx}tf${i}" value="${t.from||''}"></td><td><input type="date" id="${pfx}tt${i}" value="${t.to||''}"></td>
+ <td><select id="${pfx}sk${i}"><option value="">不分科</option>${['CO+EO','CE+EE','CO+CE','EE+EO'].map(v=>`<option ${t.sk===v?'selected':''}>${v}</option>`).join('')}</select></td>
+ <td><button type="button" class="btn sm" title="删除" onclick="delT('${pfx}',${i})">✕</button></td></tr>`).join('')}</table></div>`:'<p class="mut small">还没有老师</p>');}
+function readT(pfx){const K=tKnown();return (EDT[pfx]||[]).map((t,i)=>{const g=k=>document.getElementById(pfx+k+i);if(!g('tn'))return t;
+ const n=g('tn').value.trim();const d=[...g('td').value].map(ch=>CN.indexOf(ch)).filter(x=>x>=0&&x<7);
+ const id=t.n===n&&t.id?t.id:(K[n]?K[n].id:n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||('t'+i));
+ const o={id,n,zh:g('tz').value==='1',d:[...new Set(d)].sort()};
+ if(g('tf').value)o.from=g('tf').value;if(g('tt').value)o.to=g('tt').value;if(g('sk').value)o.sk=g('sk').value;return o})}
+function addT(pfx){const L=readT(pfx);L.push({n:'',zh:false,d:[]});document.getElementById(pfx+'tch').innerHTML=tchRows(pfx,L)}
+function delT(pfx,i){const L=readT(pfx);L.splice(i,1);document.getElementById(pfx+'tch').innerHTML=tchRows(pfx,L)}
+function tAuto(pfx,i){const n=document.getElementById(pfx+'tn'+i).value.trim();const k=tKnown()[n];if(k)document.getElementById(pfx+'tz'+i).value=k.zh?'1':'0'}
 function cyc(b,pfx){
  const isI=document.getElementById(pfx+'cat').value.includes('国际');
  if(!b.classList.contains('on')&&!b.classList.contains('f')){b.classList.add(isI?'f':'on')}
@@ -450,7 +470,7 @@ function readEd(pfx,base){
  const c=Object.assign({},base,{code:g('code').value.trim(),cat:g('cat').value,ft:g('ft').value==='1',coh:g('coh').value||start,stage:g('stage').value,start,last:g('last').value,a0:+g('a0').value||3,wd,fr,off,note:g('note').value,unset:false});
  const path=pathOf(c); if(!path.includes(c.stage))c.stage=path[0]; if(!path.includes(c.last))c.last=path[path.length-1];
  if(isIntl(c)) c.fr=c.wd.slice();
- c.tch=(base.tch||[]).map((t,i)=>{const el=document.getElementById(pfx+'sk'+i);return el?Object.assign({},t,{sk:el.value||undefined}):t});
+ if(document.getElementById(pfx+'tch')) c.tch=readT(pfx).filter(t=>t.n);
  return c;
 }
 const MIXK=['A1','A2','C5G'];
@@ -501,7 +521,7 @@ function openC(id){
  <h2 style="margin:0 0 2px">${esc(c.code)} <span class="tag">${c.cat}</span> <span class="tag ${stCls[I.st]}">${I.st}</span></h2>
  <div class="mut" style="margin-bottom:10px">${c.ft?'全日':'兼读'} · ${I.cad.t} · 老师：${tchStr(c)}${c.note?' · '+esc(c.note):''}</div>
  <div id="dres">${result(c)}</div>
- <details class="noprint" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">修改设定（上课日、外教日、停课日、阶段）</summary><div class="card" style="margin-top:8px">${editor(c,'e_')}
+ <details class="noprint" style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">修改设定（老师、上课日、外教日、停课日、阶段）</summary><div class="card" style="margin-top:8px">${editor(c,'e_')}
  <div class="row"><button class="btn pri" onclick="saveC('${c.id}')">保存</button><button class="btn" onclick="window.print()">打印</button><span style="flex:1"></span><button class="btn" onclick="delC('${c.id}')">删除此班</button></div></div></details>`;
  document.getElementById('mbg').classList.add('on');
 }
@@ -517,7 +537,7 @@ function delC(id){if(!confirm('确定删除这个班？'))return;CLS=CLS.filter(
 // ---- new class ----
 let NEW={code:'',cat:'加东中国班',ft:false,coh:'',stage:'A1',start:'',last:'C7',wd:[1,3,5],fr:[3],off:[],note:'',tch:[]};
 function vNew(){
- return `<div class="card"><h2>开班计算</h2><p class="note">填入开课日与上课日，马上算出每个阶段的结课日、考试日，以及中教/外教各上几次。${CFG.noMidFrom.slice(0,7).replace('-',' 年 ')} 月起开班的 A1、A2 只有期末考。</p>
+ return `<div class="card"><h2>开班计算</h2><p class="note">填入开课日与上课日，马上算出每个阶段的结课日和考试日。按「加入班级列表」后，再填老师。${CFG.noMidFrom.slice(0,7).replace('-',' 年 ')} 月起开班的 A1、A2 只有期末考。</p>
  <div oninput="calcNew()" onchange="calcNew()">${editor(NEW,'n_')}</div>
  <div class="row"><button class="btn pri" onclick="addNew()">加入班级列表</button></div></div><div class="card" id="nres"></div>`;
 }
@@ -531,7 +551,7 @@ function addNew(){
  if(!c.start||!c.wd.length){alert('请填写第一堂课日期与上课日');return}
  if(!c.code) c.code=c.start.slice(2).replace(/-/g,'');
  c.id=c.code+(isIntl(c)?'i':'')+(isWest(c)&&!isIntl(c)?'w':'')+'-'+Date.now().toString(36).slice(-4);
- c.tch=[];c.sheetEnd='';CLS.unshift(c);save();go('list');openC(c.id);
+ c.tch=[];c.sheetEnd='';CLS.unshift(c);save();go('list');openC(c.id);const dt=[...document.querySelectorAll('#modal details')].pop();if(dt){dt.open=true;dt.scrollIntoView()}
 }
 // ---- exam date change ----
 function chgEx(id,k,type){
@@ -793,7 +813,26 @@ const SEEDM=Object.fromEntries(SEED.map(c=>[c.id,c]));
 function lvHit(c,code){code=String(code||'').replace(/\s/g,'');return c.code===code||c.code.endsWith(code)||shortCode(c).replace(/\s/g,'')===code}
 function sessH(c,d,x){const sd=SEEDM[c.id]||{};if(x&&x.a0)return +(c.a0h||sd.a0h||3);const h=(c.hr||sd.hr||{})[wdOf(d)];return h?+h:3}
 function sessT(c,d){const t=(c.tm||(SEEDM[c.id]||{}).tm||{})[wdOf(d)];return t||''}
+const PAYC={"Christine": "monthly", "Elnaz": "payroll", "Feng Dai": "monthly", "Helen": "payroll", "Lulu Sun": "monthly", "Nina": "monthly", "Nora": "monthly", "Ronnie Yao": "monthly", "Sun Chao": "monthly", "Sun Zhen": "payroll", "Tingting Xing": "monthly", "Vera": "payroll", "Viola": "monthly", "Toby": "monthly", "Amira（2025）": "payroll"};
+const PRIV_VER=3;
+const PRIV0=[
+ {id:'pv-hm',name:'私教 H.M.（青少年）',t:'Sylvain',d:[4],tm:'17:00-18:00',from:'2026-09-25',to:'2027-07-23'},
+ {id:'pv-hy1',name:'私教 H.Y.（TCF）',t:'Tingting Liu',d:[1,3],tm:'09:00-11:00',from:'2026-09-17',to:'2026-10-24'},
+ {id:'pv-hy2',name:'私教 H.Y.（TCF）',t:'Tingting Liu',d:[6],tm:'14:30-16:30',from:'2026-10-25',to:'2027-01-24'},
+ {id:'pv-hy3',name:'私教 H.Y.（TCF）',t:'Tingting Liu',d:[1],tm:'09:00-11:00',from:'2026-12-01',to:'2026-12-30'},
+ {id:'pv-mb1',name:'私教 M.B.',t:'Hadi',d:[5],tm:'12:00-14:00',from:'2026-09-05',to:'2026-11-09'},
+ {id:'pv-mb2',name:'私教 M.B.',t:'Hadi',d:[0],tm:'14:30-16:30',from:'2026-09-14',to:'2026-11-09'},
+ {id:'pv-mb3',name:'私教 M.B.',t:'Hadi',d:[2],tm:'14:30-16:30',from:'2026-10-07',to:'2026-11-09'},
+ {id:'pv-mb4',name:'私教 M.B.',t:'Hadi',d:[3],tm:'16:00-18:00',from:'2026-10-01',to:'2026-10-01'},
+ {id:'pv-yl1',name:'私教 Y.L.（10/3 起暂停）',t:'Christine',d:[2],tm:'19:00-21:00',from:'2026-09-23',to:'2026-10-03'},
+ {id:'pv-yl2',name:'私教 Y.L.（10/3 起暂停）',t:'Christine',d:[5],tm:'09:00-10:00',from:'2026-09-19',to:'2026-10-03'},
+ {id:'pv-yh',name:'私教 Y.H.',t:'Tingting Xing',d:[2,4],tm:'12:00-14:00',from:'2026-09-09',to:'2026-11-13'}];
+const ADJ0=[{id:'aj-sahar',d:'2026-10-06',t:'Sahar',code:'加西0303',kind:'set',h:2,note:'只上了 2 小时'},{id:'aj-hadi',d:'2026-10-10',t:'Hadi',code:'私教',kind:'set',h:4,note:'10/10 改为 4 小时'}];
+function payInit(){let ch=false;if(!CFG.priv||CFG.privVer!==PRIV_VER){CFG.priv=[...(CFG.priv||[]).filter(p=>!/^pv-/.test(p.id)),...JSON.parse(JSON.stringify(PRIV0))];CFG.privVer=PRIV_VER;ch=true}if(!CFG.payAdj){CFG.payAdj=JSON.parse(JSON.stringify(ADJ0));ch=true}return ch}
+const cycOf=n=>({monthly:'月结',payroll:'工资单',biweekly:'双周'})[PAYC[n]]||'双周';
+const tmH=tm=>{const m=String(tm||'').match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);if(!m)return 0;let a=+m[1]*60+ +m[2],b=+m[3]*60+ +m[4];if(b<=a)b+=1440;return Math.round((b-a)/6)/10};
 function payData(ym){
+ if(payInit())save();
  const m0=ym+'-01',m1=addD(addD(m0,32).slice(0,8)+'01',-1);
  const R=[],gaps=[];const log=CFG.leaveLog||[];
  CLS.forEach(c=>{
@@ -802,54 +841,83 @@ function payData(ym){
   S.forEach(s=>s.ss.forEach(x=>{const d=x.d;if(d<m0||d>m1)return;
    let ts=tOfDay(c,wdOf(d),d).map(t=>({id:t.id,n:t.n,zh:t.zh}));
    let h=sessH(c,d,x),note=[];
-   const L=log.filter(l=>lvHit(c,l.code)&&d>=l.date&&d<=(l.to||l.date));
-   L.forEach(l=>{
-    if(l.kind==='老师请假'&&l.sub){const i=ts.findIndex(t=>t.n===l.t);const sub={id:'sub:'+l.sub,n:l.sub,zh:false,sub:1,for:l.t};
-     if(i>=0){ts[i]=Object.assign({},sub,{zh:ts[i].zh});}else ts.push(sub);note.push(`${l.sub} 代 ${l.t||'?'}`)}
+   log.filter(l=>lvHit(c,l.code)&&d>=l.date&&d<=(l.to||l.date)).forEach(l=>{
+    if(l.kind==='老师请假'&&l.sub){const i=ts.findIndex(t=>t.n===l.t);const sub={id:'sub:'+l.sub,n:l.sub,zh:false,sub:1};
+     if(i>=0)ts[i]=Object.assign({},sub,{zh:ts[i].zh});else ts.push(sub);note.push(`${l.sub} 代 ${l.t||'?'}`)}
     if(l.kind==='只上部分时数'&&l.hrs!==''){h=+l.hrs;note.push(`只上 ${l.hrs} 小时`)}
    });
-   const ex=x.m||(s.mid===d&&s.midHome?'':'');
    if(!ts.length)ts=[{id:'?',n:'未指定',zh:false}];
    const multi=ts.length>1&&!c.tch.some(t=>t.sk);
-   ts.forEach(t=>R.push({d,c,k:s.k,stage:s.n,lab:x.lab||'',ex:x.m||'',t,h,tm:sessT(c,d),note:note.join('；')+(multi?'同一天排了 '+ts.length+' 位老师，请确认':'')}));
+   ts.forEach(t=>R.push({d,code:shortCode(c),c,stage:s.n,ex:x.m||'',t,h,tm:sessT(c,d),note:note.join('；')+(multi?'同一天排了 '+ts.length+' 位老师，请确认':'')}));
   }));
  });
+ const holE=new Set(CFG.hol),holW=new Set([...CFG.hol,...CFG.holW]);
+ (CFG.priv||[]).forEach(p=>{for(let d=p.from>m0?p.from:m0;d<=m1&&(!p.to||d<=p.to);d=addD(d,1)){if(!(p.d||[]).includes(wdOf(d))||(p.west?holW:holE).has(d))continue;
+  R.push({d,code:'私教',c:null,stage:p.name||'私教',ex:'',t:{id:'pv',n:p.t,zh:false},h:+(p.h||tmH(p.tm)||2),tm:p.tm||'',note:'',pv:1})}});
+ (CFG.payAdj||[]).filter(a=>a.d>=m0&&a.d<=m1).forEach(a=>{
+  const hit=a.kind==='set'?R.find(r=>r.d===a.d&&r.t.n===a.t&&(!a.code||r.code.replace(/\s/g,'')===a.code.replace(/\s/g,'')||(a.code==='私教'&&r.pv))):null;
+  if(hit){hit.h=+a.h;hit.note=[hit.note,a.note||('改为 '+a.h+' 小时')].filter(Boolean).join('；');hit.adj=1}
+  else R.push({d:a.d,code:a.code||'',c:null,stage:a.kind==='set'?'':'特殊',ex:'',t:{id:'adj',n:a.t,zh:false},h:+a.h,tm:'',note:a.note||'',adj:1});
+ });
  R.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.tm<b.tm?-1:1);
- const T={};R.forEach(r=>{const k=r.t.n;const o=T[k]=T[k]||{n:k,zh:r.t.zh,rows:[],h:0,cls:new Set()};o.rows.push(r);o.h+=r.h;o.cls.add(shortCode(r.c))});
+ const half=d=>+d.slice(8)<=15?0:1;
+ const T={};R.forEach(r=>{const k=r.t.n;const zh=r.t.zh||((T[k]||{}).zh);const o=T[k]=T[k]||{n:k,zh:false,rows:[],h:0,hh:[0,0],cls:new Set()};if(r.t.zh)o.zh=true;o.rows.push(r);o.h+=r.h;o.hh[half(r.d)]+=r.h;o.cls.add(r.code)});
+ Object.values(T).forEach(o=>o.cyc=cycOf(o.n));
  return {m0,m1,R,T:Object.values(T).sort((a,b)=>a.zh!==b.zh?(a.zh?-1:1):a.n.localeCompare(b.n)),gaps};
 }
+const f2=x=>+(+x).toFixed(2);
 function payCal(o,m0,m1){
  let h='<div class="tw"><table class="pcal"><tr>'+'一二三四五六日'.split('').map(x=>`<th>${x}</th>`).join('')+'</tr>';
  for(let w=monday(m0);w<=m1;w=addD(w,7)){h+='<tr>';for(let i=0;i<7;i++){const d=addD(w,i);const out=d<m0||d>m1;const rs=o.rows.filter(r=>r.d===d);
-  h+=`<td style="vertical-align:top;min-width:110px;height:64px;${out?'background:#f4f4f4':''}"><div class="mut small">${out?'':+d.slice(8)}</div>${rs.map(r=>`<div style="font-size:12px;line-height:1.35;margin-bottom:3px"><b style="color:${r.t.sub?'#b8730a':tcol(r.c,r.t)}">${esc(shortCode(r.c))}</b> ${esc(r.stage)}${r.ex?' <span class="tag t-r" style="padding:0 3px">'+r.ex+'</span>':''}<br><span class="mut">${esc(r.tm)} · ${r.h}h${r.t.sub?' · 代课':''}</span></div>`).join('')}</td>`}h+='</tr>'}
+  h+=`<td style="vertical-align:top;min-width:110px;height:64px;${out?'background:#f4f4f4':''}${d===addD(m0,14)?';border-right:3px solid #c33':''}"><div class="mut small">${out?'':+d.slice(8)}</div>${rs.map(r=>`<div style="font-size:12px;line-height:1.35;margin-bottom:3px"><b style="color:${r.t.sub?'#b8730a':r.pv?'#8a44b8':r.adj?'#c0392b':r.c?tcol(r.c,r.t):'inherit'}">${esc(r.code)}</b> ${esc(r.stage)}${r.ex?' <span class="tag t-r" style="padding:0 3px">'+r.ex+'</span>':''}<br><span class="mut">${r.tm?esc(r.tm)+' · ':''}${r.h}h${r.t.sub?' · 代课':''}${r.adj?' · 特殊':''}</span></div>`).join('')}</td>`}h+='</tr>'}
  return h+'</table></div>';
 }
+const PER=[['m','全月'],['a','1–15 日'],['b','16 日–月底']];
+function inPer(d){return PP==='m'||(PP==='a'?+d.slice(8)<=15:+d.slice(8)>15)}
 function vPay(){
- const P_=payData(PM);const o=P_.T.find(x=>x.n===PT)||null;
- const tot=P_.T.reduce((a,x)=>a+x.h,0);
- const sum=P_.T.map(x=>`<tr class="click ${x.n===PT?'on':''}" onclick="PT='${esc(x.n).replace(/'/g,"\\'")}';render()"><td><b style="color:${x.zh?ZHCOL:'inherit'}">${esc(x.n)}</b> <span class="tg">${x.zh?'中':'外'}</span></td><td style="white-space:normal">${[...x.cls].map(esc).join('、')}</td><td style="text-align:right">${x.rows.length}</td><td style="text-align:right"><b>${+x.h.toFixed(2)}</b></td><td>${x.rows.filter(r=>r.t.sub).length?'<span class="tag t-w">代课 '+x.rows.filter(r=>r.t.sub).length+'</span>':''}${x.rows.some(r=>r.note.includes('请确认'))?' <span class="tag t-w">要确认</span>':''}</td></tr>`).join('');
- const det=o?`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(o.n)} · ${+PM.slice(5)} 月 · ${o.rows.length} 堂 · ${+o.h.toFixed(2)} 小时</h2><span class="noprint"><button class="btn" onclick="copyHtml(document.getElementById('payList'),document.getElementById('payList').innerText)">复制明细</button> <button class="btn" onclick="window.print()">打印／存 PDF</button></span></div>
- ${payCal(o,P_.m0,P_.m1)}
- <div class="tw" id="payList" style="margin-top:12px"><table border="1" style="border-collapse:collapse"><tr><th>日期</th><th>班级</th><th>阶段</th><th>时间</th><th>时数</th><th>备注</th></tr>${o.rows.map(r=>`<tr><td>${mdw(r.d)}</td><td>${esc(shortCode(r.c))}</td><td>${esc(r.stage)}${r.ex?' '+r.ex:''}${r.lab&&/A0/.test(r.lab)?' '+r.lab:''}</td><td>${esc(r.tm)}</td><td style="text-align:right">${r.h}</td><td style="white-space:normal">${esc(r.note)}</td></tr>`).join('')}<tr><td colspan="4"><b>合计</b></td><td style="text-align:right"><b>${+o.h.toFixed(2)}</b></td><td></td></tr></table></div></div>`:'<p class="note">点上面任一位老师，看当月行事历和明细。</p>';
+ const P_=payData(PM);const o=P_.T.find(x=>x.n===PT)||null;const mo=+PM.slice(5);const last=+P_.m1.slice(8);
+ const perLab={m:`${mo}/1–${mo}/${last}`,a:`${mo}/1–${mo}/15`,b:`${mo}/16–${mo}/${last}`}[PP];
+ const sum=P_.T.map(x=>`<tr class="click ${x.n===PT?'on':''}" onclick="PT='${esc(x.n).replace(/'/g,"\\'")}';render()"><td><b style="color:${x.zh?ZHCOL:'inherit'}">${esc(x.n)}</b></td><td>${x.cyc}</td><td style="white-space:normal">${[...x.cls].map(esc).join('、')}</td><td style="text-align:right">${f2(x.hh[0])}</td><td style="text-align:right">${f2(x.hh[1])}</td><td style="text-align:right"><b>${f2(x.h)}</b></td><td>${x.rows.some(r=>r.t.sub)?'<span class="tag t-w">代课</span> ':''}${x.rows.some(r=>r.adj)?'<span class="tag t-r">特殊</span> ':''}${x.rows.some(r=>r.note.includes('请确认'))?'<span class="tag t-w">要确认</span>':''}</td></tr>`).join('');
+ const tot=k=>f2(P_.T.reduce((a,x)=>a+(k==null?x.h:x.hh[k]),0));
+ let det='<p class="note">点上面任一位老师，看当月行事历和明细。</p>';
+ if(o){const rows=o.rows.filter(r=>inPer(r.d));const hh=rows.reduce((a,r)=>a+r.h,0);
+  det=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(o.n)}（${o.cyc}）· ${perLab} · ${rows.length} 堂 · ${f2(hh)} 小时</h2><span class="noprint">${PER.map(([k,n])=>`<button class="chip ${PP===k?'on':''}" onclick="PP='${k}';render()">${n}</button>`).join('')} <button class="btn" onclick="copyHtml(document.getElementById('payList'),document.getElementById('payList').innerText)">复制明细</button> <button class="btn" onclick="window.print()">打印／存 PDF</button></span></div>
+  ${payCal(o,P_.m0,P_.m1)}<p class="note">红线左边是 1–15 日，右边是 16 日以后。</p>
+  <div class="tw" id="payList" style="margin-top:12px"><p style="margin:0 0 4px"><b>${esc(o.n)} · ${perLab}</b></p><table border="1" style="border-collapse:collapse"><tr><th>日期</th><th>班级</th><th>阶段</th><th>时间</th><th>时数</th><th>备注</th></tr>${rows.map(r=>`<tr><td>${mdw(r.d)}</td><td>${esc(r.code)}</td><td>${esc(r.stage)}${r.ex?' '+r.ex:''}</td><td>${esc(r.tm)}</td><td style="text-align:right">${r.h}</td><td style="white-space:normal">${esc(r.note)}</td></tr>`).join('')}<tr><td colspan="4"><b>合计</b></td><td style="text-align:right"><b>${f2(hh)}</b></td><td></td></tr></table></div></div>`}
+ const ADJ=(CFG.payAdj||[]).filter(a=>a.d>=P_.m0&&a.d<=P_.m1).sort((a,b)=>a.d<b.d?-1:1);
+ const names=allTeachers();const dl=`<datalist id="pnames">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
+ const adjBox=`<div class="card noprint"><h2>特殊事件（${mo} 月）</h2><p class="note">例如某堂只上了 2 小时、多上一堂、考试批改、评审。「改这堂的时数」会盖掉那天那个班原本的时数；「另外加一笔」是多加一行。</p>
+ ${ADJ.length?`<div class="tw"><table><tr><th>日期</th><th>老师</th><th>班级</th><th>类型</th><th>时数</th><th>备注</th><th></th></tr>${ADJ.map(a=>`<tr><td>${mdw(a.d)}</td><td>${esc(a.t)}</td><td>${esc(a.code)}</td><td>${a.kind==='set'?'改这堂的时数':'另外加一笔'}</td><td>${a.h}</td><td style="white-space:normal">${esc(a.note)}</td><td><button class="btn sm" onclick="delAdj('${a.id}')">✕</button></td></tr>`).join('')}</table></div>`:'<p class="mut small">这个月还没有</p>'}
+ <div class="row" style="margin-top:8px;align-items:flex-end">${dl}<label class="f">日期<input type="date" id="aj_d" min="${P_.m0}" max="${P_.m1}"></label><label class="f">老师<input id="aj_t" list="pnames" style="width:130px"></label><label class="f">班级（可空白）<input id="aj_c" placeholder="如 加西0303" style="width:110px"></label><label class="f">类型<select id="aj_k"><option value="set">改这堂的时数</option><option value="add">另外加一笔</option></select></label><label class="f">时数<input id="aj_h" type="number" step="0.25" style="width:70px"></label><label class="f">备注<input id="aj_n" style="width:180px"></label><button class="btn pri" onclick="addAdj()">加入</button></div></div>`;
+ const PV=CFG.priv||[];
+ const pvBox=`<div class="card noprint"><h2>私教课（${PV.length}）</h2><p class="note">每周固定的私教课，填一次就会自动算进每个月；假日不算。临时取消或改时数，用上面的「特殊事件」。</p>
+ <div class="tw"><table><tr><th>名称／学生</th><th>老师</th><th>星期</th><th>时间</th><th>从</th><th>到</th><th>加西</th><th></th></tr>${PV.map((p,i)=>`<tr${p.to&&p.to<TODAY?' style="opacity:.5"':''}><td><input value="${esc(p.name)}" onchange="pvSet(${i},'name',this.value)" style="width:150px"></td><td><input list="pnames" value="${esc(p.t)}" onchange="pvSet(${i},'t',this.value)" style="width:110px"></td><td><input value="${wdStr(p.d||[])}" onchange="pvSet(${i},'d',this.value)" style="width:60px"></td><td><input value="${esc(p.tm||'')}" placeholder="${p.h?p.h+' 小时':'14:30-16:30'}" onchange="pvSet(${i},'tm',this.value)" style="width:100px"></td><td><input type="date" value="${p.from||''}" onchange="pvSet(${i},'from',this.value)"></td><td><input type="date" value="${p.to||''}" onchange="pvSet(${i},'to',this.value)"></td><td style="text-align:center"><input type="checkbox" ${p.west?'checked':''} onchange="pvSet(${i},'west',this.checked)"></td><td><button class="btn sm" onclick="pvDel(${i})">✕</button></td></tr>`).join('')}</table></div>
+ <button class="btn sm" style="margin-top:6px" onclick="pvAdd()">＋ 添加私教课</button></div>`;
  return `<div class="card noprint"><div class="row" style="justify-content:space-between"><div class="row"><h2 style="margin:0">老师月历</h2><input type="month" value="${PM}" onchange="PM=this.value||TODAY_M();PT='';render()"></div><button class="btn pri" onclick="payXlsx()">下载 Excel（每位老师一页）</button></div>
- <p class="note">依班级排课计算：已扣掉假日和「登记停课/请假」里的停课、没人代课的请假；有人代课的那堂算给代课老师；只上部分时数的按登记的时数。考试批改、额外补课不在这里。</p>
+ <p class="note">依班级排课＋私教课＋特殊事件计算。已扣掉假日、「登记停课/请假」里的停课和没人代课的请假；有人代课的算给代课老师。双周的老师看「1–15」「16–月底」两栏，月结的看「全月」。</p>
  ${P_.gaps.length?`<div class="warnbox">以下班级在工具里是从这个月中才开始记录，之前的课要另外看：${P_.gaps.map(g=>esc(shortCode(g.c))+'（'+md(g.from)+' 前）').join('、')}</div>`:''}
- <div class="tw"><table><tr><th>老师</th><th>班级</th><th>堂数</th><th>时数</th><th></th></tr>${sum}<tr><td colspan="2"><b>合计</b></td><td style="text-align:right">${P_.R.length}</td><td style="text-align:right"><b>${+tot.toFixed(2)}</b></td><td></td></tr></table></div></div>${det}`;
+ <div class="tw"><table><tr><th>老师</th><th>结算</th><th>班级</th><th>1–15</th><th>16–${last}</th><th>全月</th><th></th></tr>${sum}<tr><td colspan="3"><b>合计</b></td><td style="text-align:right">${tot(0)}</td><td style="text-align:right">${tot(1)}</td><td style="text-align:right"><b>${tot()}</b></td><td></td></tr></table></div></div>${det}${adjBox}${pvBox}`;
 }
+function addAdj(){const g=k=>document.getElementById('aj_'+k).value.trim();const a={id:'aj'+Date.now().toString(36),d:g('d'),t:g('t'),code:g('c'),kind:g('k'),h:+g('h'),note:g('n')};
+ if(!a.d||!a.t||document.getElementById('aj_h').value===''){alert('请填日期、老师、时数');return}CFG.payAdj=[...(CFG.payAdj||[]),a];save();render()}
+function delAdj(id){CFG.payAdj=(CFG.payAdj||[]).filter(a=>a.id!==id);save();render()}
+function pvSet(i,k,v){const p=CFG.priv[i];if(k==='d')v=[...new Set([...v].map(ch=>CN.indexOf(ch)).filter(x=>x>=0))].sort();if(k==='tm'){const h=tmH(v);if(!h&&v){const n=parseFloat(v);if(n){p.h=n;v=''}}else delete p.h}p[k]=v;save();render()}
+function pvAdd(){CFG.priv=[...(CFG.priv||[]),{id:'pv'+Date.now().toString(36),name:'',t:'',d:[],tm:'',from:TODAY,to:''}];save();render()}
+function pvDel(i){if(!confirm('删除这门私教课？'))return;CFG.priv.splice(i,1);save();render()}
 function loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>no(new Error('无法载入 Excel 元件'));document.head.appendChild(s)})}
 async function payXlsx(){
  try{await loadXLSX()}catch(e){alert(e.message);return}
- const P_=payData(PM);const wb=XLSX.utils.book_new();
- const s0=[['老师','中/外','班级','堂数','时数'],...P_.T.map(x=>[x.n,x.zh?'中教':'外教',[...x.cls].join('、'),x.rows.length,+x.h.toFixed(2)])];
+ const P_=payData(PM);const wb=XLSX.utils.book_new();const last=+P_.m1.slice(8);
+ const s0=[['老师','结算','班级',`1–15 日`,`16–${last} 日`,'全月'],...P_.T.map(x=>[x.n,x.cyc,[...x.cls].join('、'),f2(x.hh[0]),f2(x.hh[1]),f2(x.h)])];
  if(P_.gaps.length)s0.push([],['注意：以下班级在工具里从这个月中才开始记录，之前的课要另外看'],...P_.gaps.map(g=>[shortCode(g.c),md(g.from)+' 前']));
- const ws0=XLSX.utils.aoa_to_sheet(s0);ws0['!cols']=[{wch:16},{wch:6},{wch:40},{wch:6},{wch:6}];XLSX.utils.book_append_sheet(wb,ws0,'汇总');
- const used=new Set(['汇总']);
+ const ws0=XLSX.utils.aoa_to_sheet(s0);ws0['!cols']=[{wch:16},{wch:7},{wch:40},{wch:8},{wch:8},{wch:8}];XLSX.utils.book_append_sheet(wb,ws0,'汇总');
+ const used=new Set(['汇总']);const row=r=>[r.d,CN[wdOf(r.d)],r.code,r.stage,r.ex,r.tm,r.h,r.note];
  P_.T.forEach(x=>{let nm=x.n.replace(/[\\\/\?\*\[\]:]/g,'').slice(0,28)||'老师';while(used.has(nm))nm+='_';used.add(nm);
-  const a=[['日期','星期','班级','阶段','考试','时间','时数','备注'],...x.rows.map(r=>[r.d,CN[wdOf(r.d)],shortCode(r.c),r.stage,r.ex,r.tm,r.h,r.note]),['','','','','','合计',+x.h.toFixed(2),'']];
-  const ws=XLSX.utils.aoa_to_sheet(a);ws['!cols']=[{wch:11},{wch:4},{wch:12},{wch:10},{wch:6},{wch:12},{wch:6},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,nm)});
+  const A=x.rows.filter(r=>+r.d.slice(8)<=15),B=x.rows.filter(r=>+r.d.slice(8)>15);
+  const a=[[x.n+'（'+x.cyc+'）'],['日期','星期','班级','阶段','考试','时间','时数','备注'],...A.map(row),['','','','','','1–15 小计',f2(x.hh[0]),''],...B.map(row),['','','','','',`16–${last} 小计`,f2(x.hh[1]),''],['','','','','','全月合计',f2(x.h),'']];
+  const ws=XLSX.utils.aoa_to_sheet(a);ws['!cols']=[{wch:11},{wch:4},{wch:12},{wch:14},{wch:6},{wch:12},{wch:7},{wch:30}];XLSX.utils.book_append_sheet(wb,ws,nm)});
  XLSX.writeFile(wb,`MLI老师月历_${PM}.xlsx`);
 }
-
 function vSet(){
  const ks=Object.keys(DEF_CFG.st);
  return `<div class="card"><h2>每阶段课次与考试位置</h2><p class="note">改了之后所有班级会重新计算。期中＝第几次课；期末＝最后几次课（CLB 与 Phase 3 的 6 小时期末占最后 2 次）。</p><div class="tw"><table><tr><th>阶段</th><th>课次</th><th>期中在第几次（0=无）</th><th>期末占最后几次</th><th>受“9 月起无期中”规则影响</th></tr>
