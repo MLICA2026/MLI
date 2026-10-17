@@ -310,7 +310,7 @@ function filtered(){
  return CLS.filter(c=>(!F.cat||c.cat===F.cat)&&(!F.q||(c.code+' '+c.tch.map(t=>t.n).join(' ')+' '+(c.note||'')).toLowerCase().includes(F.q.toLowerCase()))).map(c=>({c,I:info(c)})).filter(x=>!F.st||x.I.st===F.st);
 }
 // ---- nav ----
-const VIEWS=[['quick','总览'],['leave','登记停课/请假'],['ov','提醒'],['list','班级列表'],['gantt','时间轴'],['exam','考试日历'],['new','开班计算'],['pay','老师月历'],['set','设置']];
+const VIEWS=[['quick','总览'],['leave','登记停课/请假'],['ov','提醒'],['list','班级列表'],['gantt','时间轴'],['stat','考试统计'],['new','开班计算'],['pay','老师月历'],['set','设置']];
 function nav(){document.getElementById('nav').innerHTML=VIEWS.map(([k,n])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}
 function go(v){VIEW=v;nav();render();window.scrollTo(0,0)}
 function filt(withSt=true){
@@ -332,8 +332,8 @@ function render(){
  if(VIEW==='ov') m.innerHTML=vOv();
  if(VIEW==='list') m.innerHTML=vList();
  if(VIEW==='gantt') m.innerHTML=vGantt();
- if(VIEW==='exam') m.innerHTML=vExam();
- if(VIEW==='stat'){VIEW='quick';EXM='wk';m.innerHTML=vQuick()}
+ if(VIEW==='exam'){VIEW='quick';nav();m.innerHTML=vQuick()}
+ if(VIEW==='stat') m.innerHTML=vStat();
  if(VIEW==='new') {m.innerHTML=vNew();calcNew()}
  if(VIEW==='set') m.innerHTML=vSet();
  if(VIEW==='pay') m.innerHTML=vPay();
@@ -720,7 +720,8 @@ function vQuick(){
  const cls=L.sort((a,b)=>(a.I.cur&&a.I.cur.end||'')<(b.I.cur&&b.I.cur.end||'')?-1:1).map(({c,I})=>{const s=I.cur;return `<tr class="click" onclick="openC('${c.id}')"><td><b>${esc(shortCode(c))}</b>${I.st==='即将开课'?' <span class="tag t-b">即将开课</span>':''}</td>${all?'<td>'+c.cat+'</td>':''}<td>${s?`<span class="tag st" style="background:${color(s.k)}">${s.n}</span>`:''}</td><td>${c.ft?'全日':'兼读'}</td><td>${wdHtml(c)}</td><td>${s?mdw(s.start)+' → '+mdw(s.end):''}</td><td>${I.nxt?I.nxt.n+'<br><span class="mut small">'+mdw(I.nxt.start)+' 起</span>':'—'}</td><td style="white-space:normal;min-width:140px">${tchStr(c)}</td></tr>`}).join('');
 
  return `<div class="row">${chips}</div>${kpi}
- ${exPanel(ex,h30)}
+ ${(()=>{const ev=allEvents().filter(e=>!e.tr&&e.d>=addD(TODAY,-7)&&(all||e.c.cat===QC));const by={};ev.forEach(e=>{const k=e.d.slice(0,7);(by[k]=by[k]||[]).push(e)});
+  return Object.keys(by).map(k=>`<div class="card"><h2>考试日历 · ${k.slice(0,4)} 年 ${+k.slice(5)} 月（${by[k].length}）</h2>${evTable(by[k])}</div>`).join('')||'<div class="card"><span class="mut">没有考试</span></div>'})()}
  <div class="card"><h2>${QC||'全部班级'}（${L.length} 个班）</h2><p class="note">按本阶段结束日排序；点一行看完整排课。上课日颜色：中教绿色，外教各一色。</p><div class="tw"><table><tr><th>班级</th>${all?'<th>类型</th>':''}<th>目前阶段</th><th>形式</th><th>上课日</th><th>本阶段</th><th>下一阶段</th><th>老师</th></tr>${cls}</table></div></div>`;
 }
 
