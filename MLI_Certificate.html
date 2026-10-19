@@ -137,7 +137,7 @@ input.bad{border-color:var(--warn);background:var(--warn-bg)}
       <div class="grid">
         <label class="f">Programme
           <select class="c" id="prog">
-            <option>NCLC 4</option><option selected>NCLC 5</option><option>NCLC 7</option><option value="__other">其他（自填）</option>
+            <option>Niveau 4</option><option selected>Niveau 5</option><option>Niveau 7</option><option value="__other">其他（自填）</option>
           </select>
         </label>
         <label class="f">注册方式
@@ -202,7 +202,7 @@ function val(v,label){ return v ? esc(v) : ph(label); }
 let stages = [];
 let uid = 0;
 function newStage(level=''){ return {id:++uid, level, co:'', eo:'', ce:'', ee:'', from:'', to:'', pres:''}; }
-stages = ['A1','A2','NCLC 5','NCLC 6','NCLC 7'].map(l=>newStage(l));
+stages = ['A1','A2','Niveau 5','Niveau 6','Niveau 7'].map(l=>newStage(l));
 
 function renderStageForm(){
   const box = $('stages');
@@ -244,7 +244,7 @@ $('addStage').addEventListener('click', ()=>{
   const inputs = $('stages').querySelectorAll('.stage:last-child input'); inputs[0] && inputs[0].focus();
 });
 const dl = document.createElement('datalist'); dl.id='lvlList';
-dl.innerHTML = ['A0','A1','A2','B1','B2','C1','NCLC 4','NCLC 5','NCLC 6','NCLC 7'].map(v=>`<option value="${v}">`).join('');
+dl.innerHTML = ['A0','A1','A2','B1','B2','C1','Niveau 4','Niveau 5','Niveau 6','Niveau 7'].map(v=>`<option value="${v}">`).join('');
 document.body.appendChild(dl);
 
 function stageRange(){
