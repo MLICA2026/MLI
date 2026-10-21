@@ -191,6 +191,15 @@ PATCHES.push({id:'p1017-a2-34',run:()=>{['260708','260625','260730'].forEach(cod
  if(c.sOv)delete c.sOv.A2;delete c.aligned;c.sheetEnd='';c.note=(c.note?c.note+'；':'')+'A2 照标准 34 堂（10 月课表结课日不对）'})}});
 PATCHES.push({id:'p1017-0505-tch',run:()=>{const c=CLS.find(x=>x.code==='260505');if(!c)return;
  c.tch=[{id:'marion',n:'Marion',zh:false,d:[1,3,4],sk:'CO+EO'},{id:'bita',n:'Bita',zh:false,d:[0,2],sk:'CE+EE'}];c.fr=c.wd.slice()}});
+PATCHES.push({id:'p1020-1215w',run:()=>{if(CLS.some(c=>c.code==='251215'))return;
+ CLS.push({id:'251215w',code:'251215',cat:'加西中国班',ft:false,coh:'2025-12-15',stage:'C6',start:'2026-09-17',last:'C7',wd:[0,2,3],fr:[0,2,3],off:[],note:'从教师管理系统补入：CLB6 9/17 起；Ulrich 一三，周四 9/21 前 Amira、9/22 起 Serge；10/14 Serge 代 Ulrich',unset:false,sheetEnd:'2026-10-28',sOv:{C6:16},
+  hr:{0:3,2:3,3:3},tm:{0:'18:40-21:40',2:'18:40-21:40',3:'18:40-21:40'},
+  tch:[{id:'ulrich',n:'Ulrich',zh:false,d:[0,2]},{id:'amira',n:'Amira',zh:false,d:[3],to:'2026-09-21'},{id:'serge',n:'Serge',zh:false,d:[3],from:'2026-09-22'}]});
+ CFG.leaveLog=CFG.leaveLog||[];if(!CFG.leaveLog.some(x=>x.id==='p1020-1215-1014'))CFG.leaveLog.push({id:'p1020-1215-1014',date:'2026-10-14',to:'2026-10-14',code:'251215',kind:'老师请假',t:'Ulrich',sub:'Serge',hrs:'',mk:'',note:'Serge 代课（补登）',who:'Wenny',shift:false,added:[]});}});
+PATCHES.push({id:'p1020-sk',run:()=>{const M={'260501':{dyhia:'CO+EO',emna:'CE+EE',sahar:'CE+EE'},'260306w':{dyhia:'CO+EO',delicia:'CE+EE'},'260109':{dounia:'CO+EO',daniele:'CE+EE'},'251210':{dounia:'CO+EO',madhavi:'CE+EE'},'251024':{dyhia:'CO+EO',sharfaa:'CE+EE'},'251018':{dyhia:'CO+EO',sharfaa:'CE+EE'}};
+ CLS.forEach(c=>{const m=M[c.id];if(!m||!c.tch)return;c.tch.forEach(t=>{if(m[t.id]&&!t.sk)t.sk=m[t.id]})})}});
+PATCHES.push({id:'p1020-sk-0213',run:()=>{const c=CLS.find(c=>c.id==='260213');if(!c||!c.tch)return;c.tch.forEach(t=>{if(t.sk)return;if(t.id==='serge')t.sk='CO+EO';else if(!t.zh)t.sk='CE+EE'})}});
+PATCHES.push({id:'p1020-0817-jel',run:()=>{const c=CLS.find(c=>c.id==='260817w');if(!c||!c.tch)return;c.tch.forEach(t=>{if(t.id==='delicia'){t.id='jellinette';t.n='Jellinette'}})}});
 function applyPatches(){CFG.patches=CFG.patches||[];let ch=false;PATCHES.forEach(p=>{if(CFG.patches.includes(p.id))return;try{p.run();CFG.patches.push(p.id);ch=true}catch(e){}});return ch}
 // ---- 练习模式 ----
 let DEMO=null;
@@ -323,7 +332,7 @@ function info(c){
  if(c.sheetEnd&&first&&first.end!==c.sheetEnd&&!S.some(s=>s.end===c.sheetEnd)) warns.push(`课表写本阶段 ${md(c.sheetEnd)} 结束，计算为 ${md(first.end)}${first.end<c.sheetEnd?'（可能有停课/请假未录入）':''}`);
  if(c.aligned) warns.push(`本阶段课表结课日为 ${md(c.sheetEnd)}：标准 ${c.aligned.std} 次课，课表实际 ${c.aligned.n} 次（已依课表计算，可能含停课、补课或并班）`);
  if(c.unset) warns.push('外教上课日未设定，中教/外教次数无法分开计算');
- c.tch.filter(t=>INACT.includes(t.id)).forEach(t=>warns.push(`课表仍排 ${t.n}（目前不合作），请确认代课老师`));
+ c.tch.filter(t=>INACT.includes(t.id)&&!(t.to&&t.to<TODAY)).forEach(t=>warns.push(`课表仍排 ${t.n}（目前不合作），请确认代课老师`));
  const cad=cadence(c,cur);
  const a1=S.find(s=>s.plan);
  if(a1&&a1.plan.std&&!c.unset&&(c.fr||[]).length&&(c.fr||[]).length<c.wd.length&&a1.end>=TODAY){const p=a1.plan;
