@@ -208,6 +208,7 @@ PATCHES.push({id:'p1022-cal',run:()=>{CFG.payAdj=CFG.payAdj||JSON.parse(JSON.str
   {id:'aj-helen-1022',d:'2026-10-22',t:'Helen',code:'代课',kind:'add',h:3,note:'紧急代课（老师日历）'}].forEach(a=>{if(!CFG.payAdj.some(x=>x.id===a.id))CFG.payAdj.push(a)});
  const c=CLS.find(c=>c.id==='260703');if(c&&c.tch){const h=c.tch.find(t=>t.id==='helen'&&t.stg&&t.stg.includes('C6'));if(h){h.stg=['C5T'];if(!c.tch.some(t=>t.id==='tbd-0703'))c.tch.push({id:'tbd-0703',n:'待定外教',zh:false,d:[0,1],stg:['C6','C7']})}}}});
 PATCHES.push({id:'p1022-hol1228',run:()=>{CFG.hol=CFG.hol||[];if(!CFG.hol.includes('2026-12-28')){CFG.hol.push('2026-12-28');CFG.hol.sort()}}});
+PATCHES.push({id:'p1022-hol1226',run:()=>{CFG.hol=CFG.hol||[];if(!CFG.hol.includes('2026-12-26')){CFG.hol.push('2026-12-26');CFG.hol.sort()}}});
 function applyPatches(){CFG.patches=CFG.patches||[];let ch=false;PATCHES.forEach(p=>{if(CFG.patches.includes(p.id))return;try{p.run();CFG.patches.push(p.id);ch=true}catch(e){}});return ch}
 // ---- 练习模式 ----
 let DEMO=null;
@@ -368,7 +369,7 @@ function filtered(){
  return CLS.filter(c=>(!F.cat||c.cat===F.cat)&&(!F.q||(c.code+' '+c.tch.map(t=>t.n).join(' ')+' '+(c.note||'')).toLowerCase().includes(F.q.toLowerCase()))).map(c=>({c,I:info(c)})).filter(x=>!F.st||x.I.st===F.st);
 }
 // ---- nav ----
-const VIEWS=[['ov','提醒'],['leave','登记停课/请假'],['list','班级列表'],['gantt','时间轴'],['stat','考试统计'],['new','开班计算'],['pay','老师月历'],['set','设置']];
+const VIEWS=[['ov','提醒'],['leave','登记停课/请假'],['list','班级列表'],['gantt','时间轴'],['stat','考试统计'],['new','开班计算'],['rot','老师空档'],['pay','老师月历'],['set','设置']];
 function nav(){document.getElementById('nav').innerHTML=VIEWS.map(([k,n])=>`<button class="${VIEW===k?'on':''}" onclick="go('${k}')">${n}</button>`).join('')}
 function go(v){VIEW=v;nav();render();window.scrollTo(0,0)}
 function filt(withSt=true){
@@ -394,6 +395,7 @@ function render(){
  if(VIEW==='leave') {m.innerHTML=vLeave();lvRestore();lvInit();lvRestore()}
  if(VIEW==='ov') m.innerHTML=vOv();
  if(VIEW==='list') m.innerHTML=vList();
+ if(VIEW==='rot') m.innerHTML=vRot();
  if(VIEW==='gantt') m.innerHTML=vGantt();
  if(VIEW==='stat') m.innerHTML=vStat();
  if(VIEW==='new') {m.innerHTML=vNew();calcNew()}
@@ -433,6 +435,64 @@ function vOv(){
 function evTable(ev,tr){
  if(!ev.length) return '<span class="mut">无</span>';
  return `<div class="tw"><table><tr><th>日期</th><th>班号</th><th>类型</th><th>${tr?'阶段':'考试'}</th><th>上课日</th><th>老师</th></tr>${ev.map(e=>`<tr class="click${e.d<TODAY?' pastrow':''}" onclick="openC('${e.c.id}')"><td>${mdw(e.d)}${e.d===TODAY?' <span class="tag t-r">今天</span>':''}</td><td><b>${e.c.code}</b></td><td>${e.c.cat}</td><td><span class="tag st" style="background:${color(e.s.k)}">${e.s.n}</span> ${tr?'开始':e.t}</td><td>${wdHtml(e.c)}</td><td>${tchStr(e.c)}</td></tr>`).join('')}</table></div>`;
+}
+// ---- 老师空档：依带班规则推算每位老师何时释出时段 ----
+const ROT_DEF={nina:'A2','xiao-zhang':'A2','feng-dai':'A2',vera:'C5G','sun-zhen':'C5G'};
+const ROT_WHY={A2:'只教到 A2（不教 B1 语法、不教 TCF）',C5G:'全职：教完 CLB5 语法回去带新班',C5T:'教到 CLB5 TCF（之后 CLB6/7 纯外教）'};
+let ROTF='zh';
+function rotLv(id){return (CFG.rotLv&&CFG.rotLv[id])||ROT_DEF[id]||'C5T'}
+function rotSet(id,v){CFG.rotLv=CFG.rotLv||{};CFG.rotLv[id]=v;save();render()}
+function slotStr(c,days){const g={};[...days].sort((a,b)=>a-b).forEach(i=>{const tm=(c.tm&&c.tm[i])||'';(g[tm]=g[tm]||[]).push(CN[i])});return Object.entries(g).map(([tm,ds])=>'周'+ds.join('')+(tm?' '+tm:'')).join('；')}
+function rotData(){
+ const ev=[],conf=[],soft=[];
+ CLS.forEach(c=>{if(c.unset)return;const S=calc(c);if(!S.length)return;const path=pathOf(c);const lastS=S[S.length-1];if(!lastS.end||lastS.end<TODAY)return;
+  c.tch.forEach(t=>{if(t.to&&t.to<TODAY)return;if(t.from&&t.from>lastS.end)return;
+   let exitK,why,expl=!!(t.stg&&t.stg.length);
+   if(expl){exitK=[...t.stg].sort((a,b)=>path.indexOf(a)-path.indexOf(b)).pop();why='班级页指定只带 '+stgLab(t,path)}
+   else if(isIntl(c)){exitK=lastS.k;why='国际班带到结课'}
+   else if(!t.zh){exitK=lastS.k;why='外教带到结课'}
+   else{const lv=rotLv(t.id);exitK=path.includes(lv)?lv:'A2';why=ROT_WHY[lv]||'';if(lv==='C5G'&&!path.includes('C5G'))why='全职：新课程没有 CLB5 语法，A2 后回去带新班'}
+   let s=S.find(x=>x.k===exitK);
+   if(!s){if(path.indexOf(exitK)<path.indexOf(S[0].k)){conf.push({c,t,msg:'按规则 '+stgName(exitK)+' 后就不带，但现在还挂在 '+S[0].n});return}s=lastS}
+   const ei=path.indexOf(s.k);let d='';S.forEach(x=>{if(path.indexOf(x.k)>ei)return;x.ss.forEach(y=>{if(y.d>d&&tOfDay(c,wdOf(y.d),y.d,x.k).includes(t))d=y.d})});if(!d)d=s.end;
+   if(t.to&&t.to<d){d=t.to;why='班级页设定带到 '+md(t.to)}
+   if(d<TODAY){if(!expl&&!(t.to&&t.to<=s.end))conf.push({c,t,msg:'按规则 '+md(d)+'（'+s.n+' 结束）就不带了，班级页还挂着'});return}
+   const days=t.d&&t.d.length?t.d:c.wd;
+   ev.push({d,c,t,kind:'out',k:s.k,sn:s.n,slot:slotStr(c,days),why,n:days.length});
+   if(t.zh&&!isIntl(c)&&!expl&&exitK==='C5T'){const iT=path.indexOf('C5T'),pk=path[iT-1],ps=S.find(x=>x.k===pk),keep=c.ft?2:1;let pd='';if(ps)ps.ss.forEach(y=>{if(y.d>pd&&tOfDay(c,wdOf(y.d),y.d,pk).includes(t))pd=y.d});
+    if(ps&&pd&&pd>=TODAY&&days.length>keep)ev.push({d:pd,c,t,kind:'cut',k:pk,sn:ps.n,slot:slotStr(c,days),why:'CLB5 TCF 中教只上每周 '+keep+' 次（'+(c.ft?'全日':'兼读')+'），目前 '+days.length+' 天要释出 '+(days.length-keep)+' 天给外教',n:days.length-keep})}
+   if(t.zh&&!isIntl(c)&&!expl&&!t.to){const after=S.filter(x=>path.indexOf(x.k)>path.indexOf(exitK));if(after.length)soft.push({c,t,s:after[0]})}
+  });
+ });
+ ev.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.t.n.localeCompare(b.t.n));
+ return {ev,conf,soft};
+}
+function vRot(){
+ const {ev,conf,soft}=rotData();
+ const keep=e=>ROTF==='all'||(ROTF==='zh'?e.t.zh:!e.t.zh);
+ const E=ev.filter(keep);
+ const T=new Map();E.forEach(e=>{const o=T.get(e.t.n)||{n:e.t.n,zh:e.t.zh,L:[]};o.L.push(e);T.set(e.t.n,o)});
+ const TL=[...T.values()].sort((a,b)=>a.L[0].d<b.L[0].d?-1:1);
+ const tagK=e=>e.kind==='out'?'<span class="tag" style="background:#e3f3ea;border-color:#1a8a55;color:#1a8a55">空出</span>':'<span class="tag" style="background:#fdf1e0;border-color:#b8730a;color:#b8730a">减少 '+e.n+' 天</span>';
+ const cards=TL.map(o=>{const outs=o.L.filter(e=>e.kind==='out');const first=o.L[0];
+  return `<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><b style="font-size:16px">${esc(o.n)} <span class="tag">${o.zh?'中':'外'}</span></b><span class="mut small">最早 ${mdw(first.d)} 后有时段释出${outs.length?' · 全部带完 '+mdw(outs[outs.length-1].d):''}</span></div>
+  <div class="tw"><table style="margin-top:6px"><tr><th>最后一堂</th><th></th><th>班级</th><th>阶段</th><th>释出时段</th><th>原因</th></tr>
+  ${o.L.map(e=>`<tr><td style="white-space:nowrap">${mdw(e.d)}</td><td>${tagK(e)}</td><td><b>${e.c.code}</b><br><span class="mut small">${e.c.cat}${e.c.ft?' · 全日':' · 兼读'}</span></td><td>${esc(e.sn)} 结束</td><td>${esc(e.slot)}</td><td class="small">${esc(e.why)}</td></tr>`).join('')}</table></div></div>`}).join('');
+ const zhs=[...new Map(CLS.flatMap(c=>c.tch.filter(t=>t.zh&&(!t.to||t.to>=TODAY)).map(t=>[t.id,t.n]))).entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+ const rules=`<div class="card"><b>带班规则</b>
+ <ul class="small" style="margin:6px 0 10px 18px;padding:0;line-height:1.7">
+ <li>CLB5 语法：中外教分配跟 A2 一样。</li>
+ <li>CLB5 TCF：兼读 外教 2 次、中教 1 次；全日 中教 2 次、外教 3 次。听力口语（CO+EO）给外教，阅读写作（CE+EE）给中教。</li>
+ <li>CLB6、CLB7：纯外教。加东通常加一位考官只负责口语，原本的外教改带听力、阅读、写作。</li>
+ <li>国际班、外教：带到全班结课。</li></ul>
+ <div class="note" style="margin-bottom:6px">每位中教教到哪个阶段（改了会存到共用资料）：</div>
+ <div style="display:flex;flex-wrap:wrap;gap:8px">${zhs.map(([id,n])=>`<label class="small" style="display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:4px 8px">${esc(n)}<select onchange="rotSet('${id}',this.value)">${[['A2','A2'],['C5G','CLB5 语法'],['C5T','CLB5 TCF']].map(([k,l])=>`<option value="${k}" ${rotLv(id)===k?'selected':''}>${l}</option>`).join('')}</select></label>`).join('')}</div></div>`;
+ const soonN=E.filter(e=>e.d<=addD(TODAY,60)).length;
+ const confH=conf.length?`<div class="warnbox"><b>跟规则对不上（${conf.length}）</b>：${conf.map(x=>`${x.c.code} ${esc(x.t.n)} — ${esc(x.msg)}`).join('；')}</div>`:'';
+ const softH=soft.length?`<details class="card small"><summary>班级页还没设阶段的中教（${soft.length}）：老师月历会在规则结束后继续算给他们</summary><div style="margin-top:6px;line-height:1.8">${soft.map(x=>`${x.c.code} ${esc(x.t.n)}：${esc(x.s.n)}（${md(x.s.start)} 起）`).join('<br>')}</div></details>`:'';
+ return `<div class="card"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center"><div><b style="font-size:17px">老师空档</b><div class="note">依带班规则推算每位老师哪天上完最后一堂、空出哪些时段，可以接新班。未来 60 天内有 ${soonN} 笔。</div></div>
+ <div class="row">${[['zh','中教'],['fr','外教'],['all','全部']].map(([k,l])=>`<button class="chip ${ROTF===k?'on':''}" onclick="ROTF='${k}';render()">${l}</button>`).join('')}</div></div></div>
+ ${confH}${cards||'<p class="mut">目前没有推算到会空出的时段</p>'}${rules}${softH}`;
 }
 function vList(){
  const L=filtered();
