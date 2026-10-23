@@ -209,6 +209,7 @@ PATCHES.push({id:'p1022-cal',run:()=>{CFG.payAdj=CFG.payAdj||JSON.parse(JSON.str
  const c=CLS.find(c=>c.id==='260703');if(c&&c.tch){const h=c.tch.find(t=>t.id==='helen'&&t.stg&&t.stg.includes('C6'));if(h){h.stg=['C5T'];if(!c.tch.some(t=>t.id==='tbd-0703'))c.tch.push({id:'tbd-0703',n:'待定外教',zh:false,d:[0,1],stg:['C6','C7']})}}}});
 PATCHES.push({id:'p1022-hol1228',run:()=>{CFG.hol=CFG.hol||[];if(!CFG.hol.includes('2026-12-28')){CFG.hol.push('2026-12-28');CFG.hol.sort()}}});
 PATCHES.push({id:'p1022-hol1226',run:()=>{CFG.hol=CFG.hol||[];if(!CFG.hol.includes('2026-12-26')){CFG.hol.push('2026-12-26');CFG.hol.sort()}}});
+PATCHES.push({id:'p1023-xmas',run:()=>{CFG.hol=CFG.hol||[];['2026-12-24','2026-12-31'].forEach(d=>{if(!CFG.hol.includes(d))CFG.hol.push(d)});CFG.hol.sort()}});
 function applyPatches(){CFG.patches=CFG.patches||[];let ch=false;PATCHES.forEach(p=>{if(CFG.patches.includes(p.id))return;try{p.run();CFG.patches.push(p.id);ch=true}catch(e){}});return ch}
 // ---- 练习模式 ----
 let DEMO=null;
@@ -305,7 +306,7 @@ function calc(c){
     if(x.f){w++;x.lab='外'+w;x.wi=w}else{z++;x.lab='中'+z;x.zi=z}
    });
    plan={z,w,needZ:full?15:17,needW:full?9:8,full,std:N===cf.s+a0-3};
-   anchor=ss.find(x=>x.wi===(full?6:5));
+   {const nA=ss.find(x=>x.zi===8),oA=ss.find(x=>x.wi===(full?6:5));anchor=nA&&nA.d>='2026-10-23'?nA:(oA||nA);} // 期中：2026/10/23 起改为中教上完第 8 堂后开始（居家）；已过的班维持旧规则（外6/外5）
   }
   let mid=null,midHome=false;
   if(cf.mid){
