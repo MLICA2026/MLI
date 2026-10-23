@@ -305,7 +305,8 @@ function draw(){
   const mi=mascotImgs[S.mascot]; let mx=W-60;
   if(mi){const mh=370, mw=mh*mi.width/mi.height; mx=W-50-mw; ctx.drawImage(mi,mx,22,mw,mh);}
   // title
-  const tx=lx+lw+48, tMax=mx-30-tx, hasSub=!!S.subtitle.trim();
+  const ref=mascotImgs.ying, refX=ref?W-50-370*ref.width/ref.height:mx; // title size always follows the 小英狸 layout
+  const tx=lx+lw+48, tMax=refX-30-tx, hasSub=!!S.subtitle.trim();
   ctx.fillStyle=NAVY; ctx.textBaseline="alphabetic";
   let ts=132;
   ctx.font=`800 ${ts}px Outfit, sans-serif`;
