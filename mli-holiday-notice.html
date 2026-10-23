@@ -113,6 +113,7 @@ details[open] summary{margin-bottom:8px}
       <span class="lbl">文字</span>
       <label class="grp"><span class="note">大标题（换行就是分行）</span><textarea id="tTitle" rows="2"></textarea></label>
       <label class="grp"><span class="note">中文大字（书法字，留空就不显示）</span><input id="tHero" type="text"></label>
+      <label class="grp"><span class="note">大数字（元旦大数字场景用，留空就是年份）</span><input id="tBig" type="text" maxlength="6"></label>
       <label class="grp"><span class="note">英文副标题</span><input id="tSub" type="text"></label>
       <label class="check"><input type="checkbox" id="closed" checked>学校放假（显示"停课"和"复课"信息；不勾就是纯节日祝福）</label>
       <div class="row2">
@@ -134,6 +135,9 @@ details[open] summary{margin-bottom:8px}
         <label class="adj"><span>标题大小</span><input type="range" id="aT" min="60" max="140" value="100"><b id="aTv">100%</b></label>
         <label class="adj"><span>其他文字</span><input type="range" id="aB" min="60" max="140" value="100"><b id="aBv">100%</b></label>
         <label class="adj"><span>文字上下</span><input type="range" id="aTy" min="-400" max="400" value="0"><b id="aTyv">0</b></label>
+        <label class="adj"><span>大数字大小</span><input type="range" id="aN" min="40" max="160" value="100"><b id="aNv">100%</b></label>
+        <label class="adj"><span>大数字左右</span><input type="range" id="aNx" min="-600" max="600" value="0"><b id="aNxv">0</b></label>
+        <label class="adj"><span>大数字上下</span><input type="range" id="aNy" min="-400" max="1200" value="0"><b id="aNyv">0</b></label>
         <span class="note">吉祥物：先选要调哪一只（或在图上点它）</span>
         <div class="seg" id="selBox"></div>
         <label class="adj"><span>大小</span><input type="range" id="aM" min="30" max="200" value="100"><b id="aMv">100%</b></label>
@@ -292,7 +296,18 @@ const TH={
  newyear:{cn:"元旦",fr:()=>"Bonne\nannée !",en:()=>"Happy New Year",dates:y=>[D(y,0,1)],font:"serif",ts:200,mascot:"cake",
    pal:{bg:"#14213d",bg2:"#26396a",soft:"#30487c",ink:"#fff6e0",sub:"#f2c14e",accent:"#f2c14e",tile:"#e2574c",pill:"#f2c14e",pillInk:"#14213d",panel:"#f2c14e",panelInk:"#14213d",dark:1,card:"#fffaf0",cardInk:"#14213d",cardSub:"#c0392b"},
    conf:["#f2c14e","#ef6f6c","#8fd3f0","#9fe0a8","#ffffff"],
-   scatter:[["*firework",null,5,150,240,.9],["star","#f2c14e",8,26,52,.95],["sparkle","#fff6e0",10,18,40,.8],["*confetti",null,80,14,26,.95]],deco:[],edge:"curve"},
+   scatter:[["*firework",null,5,150,240,.9],["star","#f2c14e",8,26,52,.95],["sparkle","#fff6e0",10,18,40,.8],["*confetti",null,80,14,26,.95]],deco:[],edge:"curve",
+   variants:{
+    fireworks:{vname:"烟火"},
+    gold:{vname:"金沙大数字",special:"gold",
+      pal:{bg:"#fbf6ee",bg2:"#f3e9da",soft:"#efe3cf",ink:"#1f2a44",sub:"#b98a2e",accent:"#5fb8ae",tile:"#3e9e93",pill:"#3e9e93",pillInk:"#ffffff",panel:"#3e9e93",panelInk:"#ffffff"}},
+    bokeh:{vname:"香槟派对",special:"bokeh",
+      pal:{bg:"#d9cfdc",bg2:"#e8d6cc",soft:"#f3e6dc",ink:"#1d1d22",sub:"#2a2a30",accent:"#d6a43a",tile:"#c08a2a",pill:"#1d1d22",pillInk:"#f7e7c0",panel:"#1d1d22",panelInk:"#f7e7c0"}},
+    brush:{vname:"水彩大数字",special:"brush",
+      pal:{bg:"#ffffff",bg2:"#ffffff",soft:"#ffffff",ink:"#1b1b1b",sub:"#1b1b1b",accent:"#5cc6b8",tile:"#3fa99c",pill:"#3fa99c",pillInk:"#fff",panel:"#3fa99c",panelInk:"#fff"}},
+    tags:{vname:"彩带标签",special:"tags",
+      pal:{bg:"#1f1d66",bg2:"#1f1d66",soft:"#2a2878",ink:"#ffffff",sub:"#e6b6e6",accent:"#52ad8d",tile:"#52ad8d",pill:"#8ea0f3",pillInk:"#141414",panel:"#52ad8d",panelInk:"#141414",dark:1}},
+   }},
  family:{cn:"家庭日",fr:()=>"Bonne Fête\nde la famille !",en:()=>"Happy Family Day",dates:y=>[nthMon(y,1,3)],font:"round",ts:170,mascot:"family",
    pal:{bg:"#dcedf9",bg2:"#f6f9fc",soft:"#c9e2f4",ink:"#1f3b63",sub:"#e07a3f",accent:"#e07a3f",tile:"#e07a3f",pill:"#1f3b63",pillInk:"#fff",panel:"#1f3b63",panelInk:"#fff"},
    scatter:[["*snow","#ffffff",40,6,14,.95],["snowflake","#a9c9e6",7,30,58,.8],["star","#f6c453",4,22,40,.9],["mitten","#e07a3f",2,54,76,1],["mitten","#4a8fd8",2,54,76,1]],deco:["village"],edge:"hills"},
@@ -407,7 +422,7 @@ const TH={
 const ORDER=["newyear","lunar","family","stpat","easter","victoria","duanwu","stjean","canada","civic","labour","midaut","truth","thanks","halloween","remem","xmas","custom"];
 
 /* ================= state ================= */
-const S={variant:"",hol:"xmas",year:2026,region:"east",layout:"cal",size:"story",seed:1,tScale:1,bScale:1,mScale:1,mx:0,my:0,ty:0,mOff:{},sel:"",mascots:["fa_santa"],closed:true,hero:"",logo:"logo_std",
+const S={variant:"",hol:"xmas",year:2026,region:"east",layout:"cal",size:"story",seed:1,bigNum:"",nx:0,ny:0,nS:1,tScale:1,bScale:1,mScale:1,mx:0,my:0,ty:0,mOff:{},sel:"",mascots:["fa_santa"],closed:true,hero:"",logo:"logo_std",
   dates:[],ret:"",title:"",sub:"",noticeFr:"",noticeEn:"",retFr:"",retEn:"",cnOn:false,cn:"",campus:"",custom:null};
 function T(){const t=TH[S.hol];return t.variants&&t.variants[S.variant]?Object.assign({},t,t.variants[S.variant]):t;}
 function hex2rgb(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(x=>x+x).join("");return [0,2,4].map(i=>parseInt(h.substr(i,2),16));}
@@ -441,7 +456,7 @@ function applyHoliday(){
   S.noticeFr="L’école sera fermée"; S.noticeEn="Our school will be closed";
   S.cnOn=!!t.cnOn; S.mascots=t.mascot&&t.mascot!=="none"?[].concat(t.mascot):[]; S.custom=null;
   S.closed=!t.greet; $("closed").checked=S.closed; S.hero=t.heroCn?t.heroCn(S.year):""; $("tHero").value=S.hero; ensureCN(S.hero);
-  renderVariants(); resetAdj();
+  renderVariants(); resetAdj(); S.bigNum=""; $("tBig").value="";
   S.campus=S.region==="east"?"Montréal · Toronto":"Vancouver";
   $("tTitle").value=S.title; $("tSub").value=S.sub; $("tNoticeFr").value=S.noticeFr; $("tNoticeEn").value=S.noticeEn;
   $("cnOn").checked=S.cnOn; $("tCampus").value=S.campus; $("ret").value=S.ret;
@@ -558,7 +573,7 @@ function fitStack(w,maxH,c,o){
   for(;s>.3;s-=.03){B=blocks(s*(o.k||1),w,c,o);if(stackH(B)<=maxH)break;}
   return B;
 }
-let LAST={m:null,t:null};
+let LAST={m:null,t:null,n:null};
 function drawStack(B,x,y,w,align,avoid){
   y+=S.ty; let yy=y;
   B.forEach((b,i)=>{b.draw(x,yy);const bx=align==="center"?x+(w-b.bw)/2:x;
@@ -947,9 +962,9 @@ function panelPath(y0,edge,r){
   else {ctx.lineTo(0,y0+40);ctx.bezierCurveTo(W*.3,y0-40,W*.7,y0-40,W,y0+40);}
   ctx.lineTo(W,H); ctx.closePath();
 }
-function drawLogo(y,hgt,p,onDark){
+function drawLogo(y,hgt,p,onDark,xo){
   const im=IMG[S.logo]; if(!im) return {x:0,y:0,w:0,h:0};
-  const w=hgt*im.width/im.height, x=(W-w)/2;
+  const w=hgt*im.width/im.height, x=xo!=null?xo+hgt*.3:(W-w)/2;
   if(onDark){const pd=hgt*.22;ctx.fillStyle="rgba(255,255,255,.95)";rr(x-pd*1.3,y-pd,w+pd*2.6,hgt+pd*2,hgt*.3);ctx.fill();}
   ctx.drawImage(im,x,y,w,hgt);
   return {x:x-30,y:y-20,w:w+60,h:hgt+40};
@@ -1016,10 +1031,11 @@ function zooAvoid(cols){return cols.map(c=>({x:c.cx-c.sz*.6,y:c.cy-c.sz*.6,w:c.s
 
 /* ================= layouts ================= */
 function draw(){
-  W=1080; H=S.size==="story"?1920:1350; LAST={m:null,t:null};
+  W=1080; H=S.size==="story"?1920:1350; LAST={m:null,t:null,n:null};
   if(cv.height!==H) cv.height=H;
   ctx.textBaseline="alphabetic";
   const p=P(), t=T(), k=H/1920, flip=rng(S.seed*7+1)()<.5, avoid=[];
+  if(t.special){ special(t.special,p,t); return; }
   bgFill(p);
   decoTop(p,avoid);
   const topPad=t.topPad!=null?t.topPad:(t.deco.includes("garland")?150:0);
@@ -1133,6 +1149,119 @@ function draw(){
     if(m) drawMascot(m,mxx,myy);
   }
 }
+function infoStack(w,maxH,c,o){
+  const sv=[S.title,S.sub,S.hero]; S.title="";S.sub="";S.hero="";
+  const B=fitStack(w,maxH,c,Object.assign({align:"center"},o||{})); [S.title,S.sub,S.hero]=sv; return B;
+}
+function spaced(txt,x,y,size,col,align,ls,weight){ctx.font=`${weight||500} ${size}px ${FONT.sans}`;setLS(ls);ctx.fillStyle=col;ctx.textAlign=align||"center";ctx.fillText(txt,x,y);setLS(0);}
+function bigNum(){return (S.bigNum||String(S.dates.length?parse(S.dates[0]).getFullYear():S.year));}
+function special(kind,p,t){
+  const k=H/1920, story=S.size==="story", r=rng(S.seed*37+11);
+  const titleOne=S.title.replace(/\s*\n\s*/g," ").trim(), num=bigNum();
+  const n1=num.length>2?num.slice(0,Math.ceil(num.length/2)):num, n2=num.length>2?num.slice(Math.ceil(num.length/2)):"";
+  const m=mascotBox(H*(story?.2:.19));
+  if(kind==="gold"){
+    {const g=ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,p.bg); g.addColorStop(1,p.bg2); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);}
+    // gold marble dust
+    for(let c=0;c<7;c++){
+      let x=r()*W*1.4-W*.2, y=r()*H, a=r()*Math.PI*2; const len=40+r()*60;
+      for(let i=0;i<len;i++){a+=(r()-.5)*.5; x+=Math.cos(a)*22; y+=Math.sin(a)*22+8;
+        const n=30; for(let j=0;j<n;j++){const d=(r()+r()+r()-1.5)*70; ctx.globalAlpha=.12+r()*.45; ctx.fillStyle=r()<.7?"#c39a45":"#dcb763"; ctx.fillRect(x+Math.sin(a)*d+(r()-.5)*6,y-Math.cos(a)*d+(r()-.5)*6,1.6+r()*1.8,1.6+r()*1.8);} }
+    }
+    ctx.globalAlpha=1;
+    drawLogo(story?60:44,story?110:90,p,!!p.dark);
+    // year on one line, centred
+    spaced((S.sub||"").toUpperCase(),W/2,story?440:220,story?42:34,p.ink,"center",story?12:9);
+    let fs=(story?360:280)*S.nS; ctx.font=`400 ${fs}px ${FONT.serif}`; while(ctx.measureText(num).width>W*.92&&fs>80){fs-=6;ctx.font=`400 ${fs}px ${FONT.serif}`;}
+    const tw=ctx.measureText(num).width, nx0=(W-tw)/2+S.nx, y1=(story?490:250)+fs*.8+S.ny;
+    const dig=(txt,x,y,col)=>{ctx.font=`400 ${fs}px ${FONT.serif}`;ctx.textAlign="left";ctx.fillStyle="rgba(60,40,10,.18)";ctx.fillText(txt,x+10,y+10);ctx.fillStyle="#d9c08a";ctx.fillText(txt,x+5,y+5);ctx.fillStyle=col;ctx.fillText(txt,x,y);};
+    dig(n1,nx0,y1,p.ink); if(n2){ctx.font=`400 ${fs}px ${FONT.serif}`; dig(n2,nx0+ctx.measureText(n1).width,y1,p.accent);}
+    LAST.n={x:nx0,y:y1-fs*.78,w:tw,h:fs*.85};
+    spaced(titleOne.toUpperCase(),W/2,y1+(story?110:80),story?46:38,p.ink,"center",story?14:10);
+    const top=y1+(story?230:130), bot=H-(m?m.h*.75:60);
+    const B=infoStack(story?760:700,bot-top,{ink:p.ink,sub:p.sub,tile:p.tile,pill:p.pill,pillInk:p.pillInk},{k:story?1:.82});
+    drawStack(B,(W-(story?760:700))/2,top+Math.max(0,(bot-top-stackH(B))*.25),story?760:700,"center",[]);
+    if(m) drawMascot(m,W-m.w-30,H-m.h-10);
+  }
+  else if(kind==="bokeh"){
+    {const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,p.bg); g.addColorStop(.55,p.bg2); g.addColorStop(1,p.bg); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);}
+    const bc=["#ffffff","#f6d7c4","#cdb8dd","#f1c9a8","#e6e0f0"];
+    for(let i=0;i<46;i++){const x=r()*W,y=r()*H,R=60+r()*150; const g=ctx.createRadialGradient(x,y,R*.2,x,y,R); const c=bc[i%bc.length];
+      g.addColorStop(0,c); g.addColorStop(.85,c); g.addColorStop(1,"rgba(255,255,255,0)"); ctx.globalAlpha=.18+r()*.25; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill();}
+    ctx.globalAlpha=1;
+    const burst=(x,y,R)=>{for(let i=0;i<34;i++){const a=i*Math.PI*2/34+r()*.05, L=R*(.55+r()*.45); ctx.strokeStyle=i%3?"#d4ab4a":"#f4efe6"; ctx.lineWidth=2.5+r()*2.5; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*R*.15,y+Math.sin(a)*R*.15); ctx.lineTo(x+Math.cos(a)*L,y+Math.sin(a)*L); ctx.stroke();}};
+    [[.02,.12,230],[.98,.05,200],[.05,.55,260],[.98,.48,220],[.04,.92,250],[.96,.9,260]].forEach(([fx,fy,R])=>burst(fx*W,fy*H,R*(story?1:.8)));
+    for(let i=0;i<40;i++){ctx.fillStyle=i%2?"#d4ab4a":"#ffffff";ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(r()*W,r()*H,4+r()*6,0,Math.PI*2);ctx.fill();} ctx.globalAlpha=1;
+    drawLogo(story?54:40,story?100:84,p,true);
+    let y=story?300:220;
+    const intro=(S.sub&&S.sub!=="Happy New Year")?S.sub:"TOUTE NOTRE ÉQUIPE VOUS SOUHAITE UNE";
+    ctx.font=`600 ${story?52:42}px ${FONT.sans}`; ctx.fillStyle=p.ink; ctx.textAlign="center";
+    wrap(intro.toUpperCase(),W*.78).forEach((l,i)=>{ctx.fillText(l,W/2,y+i*(story?62:50));}); y+=wrap(intro.toUpperCase(),W*.78).length*(story?62:50)+(story?20:10);
+    let fsT=story?170:140; ctx.font=`400 ${fsT}px ${FONT.condensed}`; const tt=titleOne.replace(/\s*!\s*$/,"").toUpperCase(); while(ctx.measureText(tt).width>W*.86&&fsT>60){fsT-=4;ctx.font=`400 ${fsT}px ${FONT.condensed}`;}
+    ctx.fillStyle=p.ink; ctx.fillText(tt,W/2,y+fsT*.82); y+=fsT*.78;
+    // gold 3D number
+    const fsN=(story?300:240)*S.nS, nx=W/2+S.nx, ny=y+fsN*.8+S.ny;
+    ctx.font=`400 ${fsN}px ${FONT.chunky}`; setLS(fsN*.02);
+    for(let d=14;d>0;d-=2){ctx.fillStyle=d>8?"#7a5414":"#a8761f";ctx.fillText(num,nx+d*.5,ny+d);}
+    const gg=ctx.createLinearGradient(0,ny-fsN*.75,0,ny); gg.addColorStop(0,"#fff1b8"); gg.addColorStop(.35,"#f2c44f"); gg.addColorStop(.55,"#c78f1e"); gg.addColorStop(.8,"#f6d36b"); gg.addColorStop(1,"#b77d16");
+    ctx.fillStyle=gg; ctx.fillText(num,nx,ny); ctx.strokeStyle="rgba(255,250,220,.6)"; ctx.lineWidth=3; ctx.strokeText(num,nx,ny); setLS(0);
+    {const w2=ctx.measureText(num).width; LAST.n={x:nx-w2/2,y:ny-fsN*.78,w:w2,h:fsN*.85};}
+    y=ny+(story?90:60);
+    ctx.font=`600 ${story?52:42}px ${FONT.sans}`; ctx.fillStyle=p.ink; ctx.fillText("ET BONNES VACANCES !",W/2,y); y+=story?70:40;
+    const bot=H-Math.max(m?m.h*.75:60, story?330:60);
+    const B=infoStack(story?760:700,bot-y,{ink:p.ink,sub:p.sub,tile:p.tile,pill:p.pill,pillInk:p.pillInk},{k:story?1:.78});
+    drawStack(B,(W-(story?760:700))/2,y,story?760:700,"center",[]);
+    // champagne
+    const gl=(x,y,rot)=>{ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.fillStyle="#f3e2d3";ctx.strokeStyle="#e9d3bf";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(-34,-150);ctx.lineTo(34,-150);ctx.lineTo(22,0);ctx.quadraticCurveTo(0,14,-22,0);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#d79a7a";ctx.fillRect(-28,-96,56,10);ctx.fillStyle="#f3e2d3";ctx.fillRect(-4,0,8,120);ctx.beginPath();ctx.ellipse(0,124,36,9,0,0,Math.PI*2);ctx.fill();ctx.restore();};
+    if(story){const gx=m?W*.3:W/2, gy=H-150; gl(gx-26,gy,-.22); gl(gx+26,gy-10,.18);
+      const st=icon("sparkle","#d4ab4a"); if(st){ctx.drawImage(st,gx+40,gy-230,46,46);ctx.drawImage(st,gx+10,gy-200,26,26);}}
+    if(m) drawMascot(m,W-m.w-30,H-m.h-10);
+  }
+  else if(kind==="brush"){
+    ctx.fillStyle=p.bg; ctx.fillRect(0,0,W,H);
+    drawLogo(story?54:36,story?96:80,p,false);
+    const sq=story?860:620, sx=(W-sq)/2, sy=story?300:200;
+    spaced(titleOne.toUpperCase(),W/2,sy-36,story?46:38,p.ink,"center",story?18:14);
+    ctx.save(); ctx.beginPath(); ctx.rect(sx,sy,sq,sq); ctx.clip();
+    ctx.fillStyle=mix(p.accent,"#ffffff",.35); ctx.fillRect(sx,sy,sq,sq);
+    for(let i=0;i<70;i++){const y0=sy-200+r()*(sq+400), x0=sx-200; const col=mix(p.accent,r()<.5?"#ffffff":"#2a7f86",r()*.6);
+      ctx.strokeStyle=col; ctx.globalAlpha=.35+r()*.45; ctx.lineWidth=14+r()*50; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(x0,y0+sq*.5); ctx.bezierCurveTo(sx+sq*.3,y0-sq*.3*r(),sx+sq*.7,y0-sq*.6,sx+sq+200,y0-sq*.9); ctx.stroke();}
+    ctx.globalAlpha=1; ctx.restore();
+    const fs=sq*(n2?.5:.62)/(Math.max(n1.length,n2.length||1)/2)*S.nS, cx=W/2+S.nx, oy=S.ny;
+    ctx.font=`400 ${fs}px ${FONT.serif}`; ctx.fillStyle="#ffffff"; ctx.textAlign="center"; setLS(fs*.06);
+    if(n2){ctx.fillText(n1,cx,sy+sq*.47+oy);ctx.fillText(n2,cx,sy+sq*.93+oy);} else ctx.fillText(n1,cx,sy+sq*.68+oy);
+    {const w2=Math.max(ctx.measureText(n1).width,ctx.measureText(n2||"").width); LAST.n={x:cx-w2/2,y:sy+sq*(n2?.47:.68)+oy-fs*.75,w:w2,h:fs*(n2?1.6:.8)};} setLS(0);
+    spaced((S.sub||"").toUpperCase(),W/2,sy+sq+(story?78:62),story?40:32,p.ink,"center",story?14:10);
+    const top=sy+sq+(story?130:90), bot=H-(m?m.h*.7:50);
+    const B=infoStack(story?760:700,bot-top,{ink:p.ink,sub:p.sub,tile:p.tile,pill:p.pill,pillInk:p.pillInk},{k:story?1:.78});
+    drawStack(B,(W-(story?760:700))/2,top,story?760:700,"center",[]);
+    if(m) drawMascot(m,W-m.w-20,H-m.h-6);
+  }
+  else { // tags
+    ctx.fillStyle=p.bg; ctx.fillRect(0,0,W,H);
+    const cs=[p.sub,"#ffffff",p.accent];
+    const curl=(x,y,s,col,rot)=>{ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeStyle=col;ctx.lineWidth=s*.09;ctx.lineCap="round";ctx.beginPath();
+      for(let i=0;i<=80;i++){const u=i/80, a=u*Math.PI*6, px=Math.cos(a)*s*.28+u*s*.2, py=u*s*1.6+Math.sin(a)*s*.28; i?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.stroke(); ctx.restore();};
+    const spots=[[.06,.05],[.82,.04],[.02,.3],[.92,.26],[.04,.62],[.9,.58],[.12,.86],[.78,.84],[.45,.0]]; spots.forEach(([fx,fy],i)=>curl(fx*W+(r()-.5)*40,fy*H,(story?90:70)+r()*50,cs[i%3],(r()-.5)*1.2));
+    for(let i=0;i<60;i++){const im=icon("star",[p.sub,"#ffffff",p.accent,"#8ea0f3"][i%4]); const s2=16+r()*20; if(im) ctx.drawImage(im,r()*W,r()*H,s2,s2);}
+    drawLogo(story?60:44,story?110:90,p,true);
+    const cy=story?H*.36:H*.36;
+    const tag=(txt,font,size,bg,col,rot,y,padX,padY)=>{ctx.save();ctx.translate(W/2,y);ctx.rotate(rot);ctx.font=font;const tw=ctx.measureText(txt).width,w=tw+padX*2,h=size+padY*2;
+      ctx.fillStyle=bg;rr(-w/2,-h/2,w,h,h*.28);ctx.fill();ctx.fillStyle=col;ctx.textAlign="center";ctx.fillText(txt,0,size*.34);ctx.restore();return h;};
+    let fs1=story?120:96; ctx.font=`400 ${fs1}px ${FONT.serif}`; while(ctx.measureText(titleOne).width>W*.78&&fs1>40){fs1-=4;ctx.font=`400 ${fs1}px ${FONT.serif}`;}
+    const h1=tag(titleOne,`400 ${fs1}px ${FONT.serif}`,fs1,p.accent,"#111",-.06,cy,46,26);
+    const fs2=(story?130:100)*S.nS; ctx.save(); ctx.translate(S.nx,S.ny); const yN=cy+h1*.5+fs2*.7+20; const h2=tag(num,`400 ${fs2}px ${FONT.serif}`,fs2,p.sub,"#111",.04,yN,40,18); ctx.restore();
+    ctx.font=`400 ${fs2}px ${FONT.serif}`; {const w2=ctx.measureText(num).width+80; LAST.n={x:W/2-w2/2+S.nx,y:yN-h2/2+S.ny,w:w2,h:h2};}
+    const fs3=story?44:36; tag((S.sub||"").toUpperCase(),`700 ${fs3}px ${FONT.sans}`,fs3,p.pill,"#111",-.03,cy+h1*.5+h2+fs3+40,40,18);
+    const top=cy+h1*.5+h2+fs3*2+(story?120:80), bot=H-(m?m.h*.75:60);
+    const B=infoStack(story?760:700,bot-top,{ink:p.ink,sub:p.sub,tile:p.tile,pill:p.panel,pillInk:"#111"},{k:story?1:.78});
+    drawStack(B,(W-(story?760:700))/2,top,story?760:700,"center",[]);
+    if(m) drawMascot(m,W-m.w-20,H-m.h-6);
+  }
+}
 let raf=0; function queueDraw(){cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);}
 
 /* ================= UI ================= */
@@ -1189,7 +1318,7 @@ const syncLayout=bindSeg("layout","layout",queueDraw);
 bindSeg("size","size",queueDraw);
 bindSeg("logo","logo",queueDraw);
 function renderVariants(){ /* scenes are picked by the shuffle button */ }
-const ADJ=[["aT","tScale",100,"%"],["aB","bScale",100,"%"],["aTy","ty",1,""]];
+const ADJ=[["aT","tScale",100,"%"],["aB","bScale",100,"%"],["aTy","ty",1,""],["aN","nS",100,"%"],["aNx","nx",1,""],["aNy","ny",1,""]];
 const MADJ=[["aM","s",100,"%","mScale"],["aMx","x",1,"","mx"],["aMy","y",1,"","my"]];
 const mName=k=>k==="zodiac"?"生肖":(A.lib.find(x=>x[0]===k)||[k,k])[1];
 function off(k){return S.mOff[k]||(S.mOff[k]={x:0,y:0,s:1});}
@@ -1206,7 +1335,7 @@ function syncAdj(){
 }
 ADJ.forEach(([id,k,div,u])=>$(id).addEventListener("input",e=>{S[k]=e.target.value/div;$(id+"v").textContent=e.target.value+u;queueDraw();}));
 MADJ.forEach(([id,k,div,u,gk])=>$(id).addEventListener("input",e=>{const v=e.target.value/div; if(S.sel) off(S.sel)[k]=v; else S[gk]=v; $(id+"v").textContent=e.target.value+u;queueDraw();}));
-function resetAdj(){S.tScale=1;S.bScale=1;S.mScale=1;S.mx=0;S.my=0;S.ty=0;S.mOff={};S.sel="";renderSel();syncAdj();}
+function resetAdj(){S.nS=1;S.nx=0;S.ny=0;S.tScale=1;S.bScale=1;S.mScale=1;S.mx=0;S.my=0;S.ty=0;S.mOff={};S.sel="";renderSel();syncAdj();}
 $("aReset").onclick=()=>{resetAdj();queueDraw();};
 { // drag on canvas: each mascot moves on its own
   let drag=null;
@@ -1215,10 +1344,12 @@ $("aReset").onclick=()=>{resetAdj();queueDraw();};
   cv.addEventListener("pointerdown",e=>{const p=pt(e);
     const hitM=(LAST.items||[]).slice().reverse().find(r=>inR(p,r));
     if(hitM){const o=off(hitM.k); drag={k:"m",id:hitM.k,p,ox:o.x,oy:o.y}; S.sel=hitM.k; renderSel(); syncAdj(); $("adjBox").open=true;}
+    else if(inR(p,LAST.n)) drag={k:"n",p,nx:S.nx,ny:S.ny};
     else if(inR(p,LAST.t)) drag={k:"t",p,ty:S.ty}; else return;
     cv.setPointerCapture(e.pointerId); cv.style.cursor="grabbing"; queueDraw();});
   cv.addEventListener("pointermove",e=>{if(!drag)return;const p=pt(e);
-    if(drag.k==="m"){const o=off(drag.id); o.x=Math.round(drag.ox+p.x-drag.p.x); o.y=Math.round(drag.oy+p.y-drag.p.y);} else S.ty=Math.round(drag.ty+p.y-drag.p.y);
+    if(drag.k==="n"){S.nx=Math.round(drag.nx+p.x-drag.p.x);S.ny=Math.round(drag.ny+p.y-drag.p.y);}
+    else if(drag.k==="m"){const o=off(drag.id); o.x=Math.round(drag.ox+p.x-drag.p.x); o.y=Math.round(drag.oy+p.y-drag.p.y);} else S.ty=Math.round(drag.ty+p.y-drag.p.y);
     syncAdj();queueDraw();});
   const end=()=>{drag=null;cv.style.cursor="";};
   cv.addEventListener("pointerup",end); cv.addEventListener("pointercancel",end);
@@ -1232,6 +1363,7 @@ $("shuffle").onclick=()=>{
 [["tTitle","title"],["tSub","sub"],["tNoticeFr","noticeFr"],["tNoticeEn","noticeEn"],["tRetFr","retFr"],["tRetEn","retEn"],["tCn","cn"],["tCampus","campus"]]
   .forEach(([id,k])=>$(id).addEventListener("input",e=>{S[k]=e.target.value;queueDraw();}));
 $("cnOn").onchange=e=>{S.cnOn=e.target.checked;queueDraw();};
+$("tBig").addEventListener("input",e=>{S.bigNum=e.target.value.trim();queueDraw();});
 $("closed").onchange=e=>{S.closed=e.target.checked;fmtTexts();queueDraw();};
 $("tHero").addEventListener("input",e=>{S.hero=e.target.value;ensureCN(S.hero);queueDraw();});
 $("pick").addEventListener("input",e=>{S.custom=e.target.value;queueDraw();});
