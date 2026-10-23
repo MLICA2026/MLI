@@ -303,7 +303,14 @@ function draw(){
   if(logoImg){lw=lh*logoImg.width/logoImg.height; ctx.drawImage(logoImg,lx,ly,lw,lh);}
   // mascot
   const mi=mascotImgs[S.mascot]; let mx=W-60;
-  if(mi){const mh=370, mw=mh*mi.width/mi.height; mx=W-50-mw; ctx.drawImage(mi,mx,22,mw,mh);}
+  if(mi){
+    // every mascot stands where 小英狸 stands: same height, heads lined up on the same vertical axis
+    const mh=370, mw=mh*mi.width/mi.height, yi=mascotImgs.ying, yw=yi?mh*yi.width/yi.height:mw;
+    const HEAD={ying:.47,fa:.61,mei:.61};
+    const axis=W-50-yw+yw*HEAD.ying;
+    mx=Math.min(W-30-mw, axis-mw*HEAD[S.mascot]);
+    ctx.drawImage(mi,mx,22,mw,mh);
+  }
   // title
   const ref=mascotImgs.ying, refX=ref?W-50-370*ref.width/ref.height:mx; // title size always follows the 小英狸 layout
   const tx=lx+lw+48, tMax=refX-30-tx, hasSub=!!S.subtitle.trim();
