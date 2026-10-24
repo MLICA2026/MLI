@@ -430,14 +430,13 @@ const TH={
       pal:{bg:"#c8242f",bg2:"#ad1d28",soft:"#d33a44",ink:"#ffffff",sub:"#ffe9c2",accent:"#ffffff",tile:"#2f7a55",pill:"#ffffff",pillInk:"#ad1d28",panel:"#ffffff",panelInk:"#ad1d28",dark:1,card:"#fffaf3",cardInk:"#ad1d28",cardSub:"#2f7a55"},
       scatter:[["snowflake","#ffffff",6,30,56,.3],["*snow","#ffffff",26,6,10,.45]],deco:["knit"],edge:"scallop",topPad:190},
    }},
- lunar:{cn:"农历新年",fr:(r,y)=>`Bonne année\n${zod(y)[1]} !`,en:(r,y)=>`Happy Lunar New Year · Year of the ${zod(y)[2]}`,dates:y=>{const d=parse(`${y}-${LUNAR[y]||"02-01"}`); d.setDate(d.getDate()-1); return [d];},eve:1,noticeFr:"Pas de cours en soirée",noticeEn:"No evening classes on Lunar New Year’s Eve",font:"serif",ts:190,mascot:["cny_fa","cny_ying","zodiac","cny_mei"],cnOn:1,zGlow:1,variants:{
+ lunar:{cn:"农历新年",fr:(r,y)=>`Bonne année\n${zod(y)[1]} !`,en:(r,y)=>`Happy Lunar New Year · Year of the ${zod(y)[2]}`,dates:y=>{const d=parse(`${y}-${LUNAR[y]||"02-01"}`); d.setDate(d.getDate()-1); return [d];},eve:1,noticeFr:"Pas de cours en soirée",noticeEn:"No evening classes on Lunar New Year’s Eve",font:"serif",ts:190,mascot:["cny_fa","cny_ying","cny_mei"],cnOn:1,zodiacBg:1,variants:{
     plum:{vname:"梅花灯笼",special:"plum",
       pal:{bg:"#f6ead3",bg2:"#f1e0c2",soft:"#ead6b2",ink:"#8e1c17",sub:"#c8372d",accent:"#c8372d",tile:"#c8372d",pill:"#8e1c17",pillInk:"#fff3d6",panel:"#8e1c17",panelInk:"#fff3d6"}},
     blossom:{vname:"金梅红幕",deco:["plumGarland"],topPad:150,font:"sans",ts:170,titleColors:["#f8d36a"],titleColorsCard:["#7d1915"],
       pal:{bg:"#7d1915",bg2:"#69120f",soft:"#8f221d",ink:"#f8d36a",sub:"#f8d36a",accent:"#f8d36a",tile:"#c8372d",pill:"#f8d36a",pillInk:"#69120f",panel:"#f8d36a",panelInk:"#69120f",dark:1,card:"#fff3d6",cardInk:"#7d1915",cardSub:"#c8372d"},
       scatter:[["sparkle","#f8d36a",10,16,34,.8],["*dot","#f8d36a",20,5,9,.4]]},
-    year:{vname:"今年生肖"},
-    zoo:{vname:"十二生肖",mascot:["cny_fa","cny_ying","cny_mei"],zooBorder:1}},heroCn:y=>`${zod(y)[0]}年大吉`,
+    year:{vname:"红灯笼"}},heroCn:y=>`${zod(y)[0]}年大吉`,
    pal:{bg:"#b3121b",bg2:"#8a0c14",soft:"#c9232b",ink:"#ffe7a8",sub:"#ffd36b",accent:"#f5c451",tile:"#c9232b",pill:"#f5c451",pillInk:"#8a0c14",panel:"#f5c451",panelInk:"#8a0c14",dark:1,card:"#fff6e3",cardInk:"#8a0c14",cardSub:"#c9232b"},
    scatter:[["*doufang","Z",2,130,170,1],["*doufang","福",2,100,130,1],["coin",null,4,40,70,1],["*cloud","#f5c451",4,100,160,.5],["sparkle","#ffe7a8",9,20,42,.8]],deco:["lanterns"],edge:"curve"},
  midaut:{cn:"中秋节",greet:1,fr:()=>"Bonne fête de\nla Mi-Automne !",en:()=>"Happy Mid-Autumn Festival",dates:y=>[parse(`${y}-${MIDAUT[y]||"09-20"}`)],font:"serif",ts:170,mascot:["ma_fa","ma_ying","ma_mei"],heroCn:()=>"中秋快乐",
@@ -512,7 +511,7 @@ function applyHoliday(){
   S.cnOn=!!t.cnOn; S.mascots=t.mascot&&t.mascot!=="none"?[].concat(t.mascot):[]; S.custom=null;
   S.closed=!t.greet; $("closed").checked=S.closed; S.hero=t.heroCn?t.heroCn(S.year):""; $("tHero").value=S.hero; ensureCN(S.hero);
   renderVariants(); resetAdj(); S.bigNum=""; $("tBig").value="";
-  S.campus=S.region==="east"?"Montréal · Toronto":"Vancouver";
+  S.campus=t.greet?"":(S.region==="east"?"Montréal · Toronto":"Vancouver");
   $("tTitle").value=S.title; $("tSub").value=S.sub; $("tNoticeFr").value=S.noticeFr; $("tNoticeEn").value=S.noticeEn;
   $("cnOn").checked=S.cnOn; $("tCampus").value=S.campus; $("ret").value=S.ret;
   fmtTexts(); renderDates(); renderMascots(); queueDraw();
@@ -706,7 +705,16 @@ function bgFill(p){
   }
 }
 let hangB=0;
+function zodiacBg(p){
+  const im=zImg(S.year); if(!im) return;
+  const k=H/1920, s=Math.min(W*1.05,H*.62), ar=im.width/im.height, w=ar>=1?s:s*ar, h=ar>=1?s/ar:s;
+  const x=(W-w)/2, y=H*.5-h*.5;
+  const oc=document.createElement("canvas"); oc.width=im.width; oc.height=im.height; const g=oc.getContext("2d");
+  g.drawImage(im,0,0); g.globalCompositeOperation="source-in"; g.fillStyle=p.dark?"#f5c451":"#c8372d"; g.fillRect(0,0,oc.width,oc.height);
+  ctx.save(); ctx.globalAlpha=p.dark?.26:.13; ctx.drawImage(oc,x,y,w,h); ctx.restore();
+}
 function decoTop(p,avoid){
+  if(T().zodiacBg) zodiacBg(p);
   const t=T(), r=rng(S.seed*17+3); hangB=0;
   if(t.deco.includes("fleurPattern")&&IMG.fleur){
     ctx.globalAlpha=.08; const s=110, im=IMG.fleur;
@@ -1337,6 +1345,7 @@ function special(kind,p,t){
     ctx.fillStyle="#8e1c17"; ctx.fillRect(lx-lw*.4,ly2,lw*.8,16); ctx.fillRect(lx-lw*.4,ly2+lh2-16,lw*.8,16);
     for(let k=0;k<5;k++){ctx.fillStyle=k%2?"#f0702f":"#e2442f"; const yy=ly2+16+k*(lh2-32)/5; rr(lx-lw/2,yy,lw,(lh2-32)/5,8); ctx.fill(); ctx.fillStyle="#f5c451"; ctx.fillRect(lx-lw*.3,yy+((lh2-32)/5)*.4,lw*.6,4);}
     ctx.strokeStyle="#8e1c17"; ctx.lineWidth=3; [-.3,0,.3].forEach(f=>{ctx.beginPath();ctx.moveTo(lx+f*lw,ly2+lh2);ctx.lineTo(lx+f*lw,ly2+lh2+40);ctx.stroke();ctx.fillStyle="#8e1c17";ctx.beginPath();ctx.arc(lx+f*lw,ly2+lh2+46,7,0,Math.PI*2);ctx.fill();});
+    zodiacBg(p);
     drawLogo(story?54:40,story?100:84,p,true,30);
     // big year
     const fs=(story?220:170)*S.nS; ctx.font=`400 ${fs}px ${FONT.chunky}`; ctx.textAlign="left"; ctx.fillStyle="#8e1c17";
