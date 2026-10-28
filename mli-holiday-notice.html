@@ -1150,10 +1150,11 @@ function drawMascot(m,x,y){
     ctx.save(); ctx.shadowColor="rgba(20,30,50,.18)"; ctx.shadowBlur=24; ctx.shadowOffsetY=10;
     ctx.drawImage(it.im,ix,iy,w,h); ctx.restore();
     LAST.items.push({k:it.k,x:ix+w*.12,y:iy,w:w*.76,h});
-    if(SHOWSEL&&S.sel===it.k){ctx.save();ctx.strokeStyle="#1fa8e0";ctx.lineWidth=4;ctx.setLineDash([12,8]);ctx.strokeRect(ix,iy,w,h);ctx.restore();}
+    if(SHOWSEL&&S.sel===it.k&&(DRAGGING||Date.now()-SELT<1200)){ctx.save();ctx.strokeStyle="#1fa8e0";ctx.lineWidth=4;ctx.setLineDash([12,8]);ctx.strokeRect(ix,iy,w,h);ctx.restore();}
   });
 }
-let SHOWSEL=true;
+let SHOWSEL=true, DRAGGING=false, SELT=0;
+function flashSel(){SELT=Date.now(); queueDraw(); setTimeout(queueDraw,1300);}
 function zooCols(yTop,yBot){
   const n=6, gap=(yBot-yTop)/n, sz=Math.min(140,gap*.95), out=[];
   for(let side=0;side<2;side++) for(let i=0;i<n;i++){
@@ -1528,7 +1529,7 @@ function renderSel(){
   $("selBox").hidden=ks.length<1;
   $("selBox").innerHTML=[["","全部一起"],...ks.map(k=>[k,mName(k)])].map(([k,l])=>`<button class="opt" data-v="${k}" aria-pressed="${S.sel===k}">${l}</button>`).join("");
 }
-$("selBox").addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b)return;S.sel=b.dataset.v;renderSel();syncAdj();queueDraw();});
+$("selBox").addEventListener("click",e=>{const b=e.target.closest("[data-v]");if(!b)return;S.sel=b.dataset.v;renderSel();syncAdj();flashSel();});
 function syncAdj(){
   ADJ.forEach(([id,k,div,u])=>{$(id).value=Math.round(S[k]*div);$(id+"v").textContent=Math.round(S[k]*div)+u;});
   MADJ.forEach(([id,k,div,u,gk])=>{const v=S.sel?off(S.sel)[k]:S[gk];$(id).value=Math.round(v*div);$(id+"v").textContent=Math.round(v*div)+u;});
@@ -1543,7 +1544,7 @@ $("aReset").onclick=()=>{resetAdj();queueDraw();};
   const inR=(p,r)=>r&&p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h;
   cv.addEventListener("pointerdown",e=>{const p=pt(e);
     const hitM=(LAST.items||[]).slice().reverse().find(r=>inR(p,r));
-    if(hitM){const o=off(hitM.k); drag={k:"m",id:hitM.k,p,ox:o.x,oy:o.y}; S.sel=hitM.k; renderSel(); syncAdj(); $("adjBox").open=true;}
+    if(hitM){const o=off(hitM.k); drag={k:"m",id:hitM.k,p,ox:o.x,oy:o.y}; S.sel=hitM.k; DRAGGING=true; renderSel(); syncAdj(); $("adjBox").open=true;}
     else if(inR(p,LAST.n)) drag={k:"n",p,nx:S.nx,ny:S.ny};
     else { const hb=(LAST.blocks||[]).slice().reverse().find(r=>inR(p,r)); if(hb){const o=S.bOff[hb.id]||(S.bOff[hb.id]={x:0,y:0}); drag={k:"b",id:hb.id,p,ox:o.x,oy:o.y};} else return; }
     cv.setPointerCapture(e.pointerId); cv.style.cursor="grabbing"; queueDraw();});
@@ -1552,7 +1553,7 @@ $("aReset").onclick=()=>{resetAdj();queueDraw();};
     else if(drag.k==="n"){S.nx=Math.round(drag.nx+p.x-drag.p.x);S.ny=Math.round(drag.ny+p.y-drag.p.y);}
     else if(drag.k==="m"){const o=off(drag.id); o.x=Math.round(drag.ox+p.x-drag.p.x); o.y=Math.round(drag.oy+p.y-drag.p.y);} else S.ty=Math.round(drag.ty+p.y-drag.p.y);
     syncAdj();queueDraw();});
-  const end=()=>{drag=null;cv.style.cursor="";};
+  const end=()=>{const was=DRAGGING; drag=null; DRAGGING=false; cv.style.cursor=""; if(was) queueDraw();};
   cv.addEventListener("pointerup",end); cv.addEventListener("pointercancel",end);
 }
 $("shuffle").onclick=()=>{
