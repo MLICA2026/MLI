@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MLI 结业文件生成器</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
@@ -137,7 +136,7 @@ input.bad{border-color:var(--warn);background:var(--warn-bg)}
       <div class="grid">
         <label class="f">Programme
           <select class="c" id="prog">
-            <option>Niveau 4</option><option selected>Niveau 5</option><option>Niveau 7</option><option value="__other">其他（自填）</option>
+            <option>NCLC 4</option><option selected>NCLC 5</option><option>NCLC 7</option><option value="__other">其他（自填）</option>
           </select>
         </label>
         <label class="f">注册方式
@@ -202,7 +201,7 @@ function val(v,label){ return v ? esc(v) : ph(label); }
 let stages = [];
 let uid = 0;
 function newStage(level=''){ return {id:++uid, level, co:'', eo:'', ce:'', ee:'', from:'', to:'', pres:''}; }
-stages = ['A1','A2','Niveau 5','Niveau 6','Niveau 7'].map(l=>newStage(l));
+stages = ['A1','A2','NCLC 5','NCLC 6','NCLC 7'].map(l=>newStage(l));
 
 function renderStageForm(){
   const box = $('stages');
@@ -244,7 +243,7 @@ $('addStage').addEventListener('click', ()=>{
   const inputs = $('stages').querySelectorAll('.stage:last-child input'); inputs[0] && inputs[0].focus();
 });
 const dl = document.createElement('datalist'); dl.id='lvlList';
-dl.innerHTML = ['A0','A1','A2','B1','B2','C1','Niveau 4','Niveau 5','Niveau 6','Niveau 7'].map(v=>`<option value="${v}">`).join('');
+dl.innerHTML = ['A0','A1','A2','B1','B2','C1','NCLC 4','NCLC 5','NCLC 6','NCLC 7'].map(v=>`<option value="${v}">`).join('');
 document.body.appendChild(dl);
 
 function stageRange(){
@@ -368,6 +367,7 @@ function validate(s){
   const miss=req.filter(([k])=>!s[k]);
   miss.forEach(([k])=>$(k).classList.add('bad'));
   if(miss.length) w.push('未填：'+miss.map(x=>x[1]).join('、'));
+  if(![s.nom,s.prenom,s.sid,s.prog].every(x=>PDF_OK.test(x))) w.push('姓名或学号含有 PDF 无法显示的字符（例如中文），请改用拼音／法文字母');
   if(!s.prog) w.push('未填：课程名称');
   if(!s.ongoing && s.issue && s.end && s.issue < s.end) w.push('开立日期早于课程结束日期（若学生还在读，状态请选“在读中”）');
   if(s.ongoing && s.inc[0]) w.push('状态为在读中，但仍勾选了 Diplôme（证书）');
@@ -408,36 +408,122 @@ function update(){
   $('warns').innerHTML = w.map(x=>'<li>'+esc(x)+'</li>').join('');
 }
 
-/* ---------- PDF ---------- */
-async function waitImages(root){
-  await Promise.all([...root.querySelectorAll('img')].map(im=>im.complete?Promise.resolve():new Promise(r=>{im.onload=im.onerror=r;})));
-  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+/* ---------- PDF (vector: real text + original images) ---------- */
+const COL={g:[96,187,134],b:[41,186,238],t:[56,185,176]};
+const imgCache={};
+function imgSize(pdf,key){ if(!imgCache[key]){ const p=pdf.getImageProperties(IMG[key]); imgCache[key]=p.width/p.height; } return imgCache[key]; }
+function pImg(pdf,key,x,top,w,h){ const fmt=IMG[key].startsWith('data:image/jpeg')?'JPEG':'PNG'; pdf.addImage(IMG[key],fmt,x,top,w,h||w/imgSize(pdf,key),key); }
+function pBar(pdf,segs,x,top,w,h){ let cx=x; segs.forEach(([c,p])=>{ const sw=w*p/100; pdf.setFillColor(...COL[c]); pdf.rect(cx,top,sw+0.2,h,'F'); cx+=sw; }); }
+function base(top,size,lh,serif){ const asc=serif?.917:.905, cont=serif?1.136:1.117; const L=lh||size*(serif?1.136:1.149); return top+(L-cont*size)/2+asc*size; }
+function pTxt(pdf,txt,x,top,o={}){
+  const size=o.size||9, serif=!!o.serif;
+  pdf.setFont(serif?'times':'helvetica',o.bold?'bold':'normal'); pdf.setFontSize(size); pdf.setTextColor(0,0,0);
+  const tw=pdf.getTextWidth(txt); let X=x;
+  if(o.align==='center') X=x+(o.w-tw)/2;
+  pdf.text(txt,X,base(top,size,o.lh,serif)); return tw;
 }
+function pPara(pdf,txt,x,top,w,o){
+  const size=o.size, lh=o.lh, indent=o.indent||0;
+  pdf.setFont('helvetica',o.bold?'bold':'normal'); pdf.setFontSize(size); pdf.setTextColor(0,0,0);
+  const sp=pdf.getTextWidth(' '); const words=txt.split(/\s+/).filter(Boolean); const lines=[]; let cur=[], cw=0;
+  words.forEach(wd=>{ const ww=pdf.getTextWidth(wd); const max=w-(lines.length?0:indent);
+    if(cur.length && cw+sp+ww>max){ lines.push(cur); cur=[wd]; cw=ww; } else { cw+= (cur.length?sp:0)+ww; cur.push(wd); } });
+  if(cur.length) lines.push(cur);
+  lines.forEach((ln,i)=>{
+    const lx=x+(i?0:indent), y=base(top+i*lh,size,lh,false), last=i===lines.length-1;
+    if(o.justify && !last && ln.length>1){
+      const tot=ln.reduce((a,wd)=>a+pdf.getTextWidth(wd),0); const gap=(w-(i?0:indent)-tot)/(ln.length-1); let cx=lx;
+      ln.forEach(wd=>{ pdf.text(wd,cx,y); cx+=pdf.getTextWidth(wd)+gap; });
+    } else pdf.text(ln.join(' '),lx,y);
+  });
+}
+function pContact(pdf,top){
+  const a='(514)- 307-0666 ', b=' info@mlicanada.ca';
+  pdf.setFont('times','normal'); pdf.setFontSize(8);
+  const tot=pdf.getTextWidth(a)+19+pdf.getTextWidth(b); let x=(612-tot)/2;
+  x+=pTxt(pdf,a,x,top,{size:8,serif:true});
+  const bl=base(top,8,0,true); pImg(pdf,'ICON',x+4,bl+2-11,11,11); x+=19;
+  pTxt(pdf,b,x,top,{size:8,serif:true});
+}
+function drawP1(pdf,s){
+  const name=fullName(s);
+  pImg(pdf,'BG',0,2,792,565.5); pImg(pdf,'LOGO',264,74,266);
+  pTxt(pdf,'Nous certifions par la présente que',0,212,{size:17,align:'center',w:792});
+  pPara(pdf,`${name} est ${s.f?'diplômée':'diplômé'} du programme de français ${s.prog} à l'institut de langues de Montréal. ${name} a suivi assidûment les cours et a réussi le travail requis par le programme d’enseignement requis.`,56,250,680,{size:17,lh:32,indent:44,justify:true});
+  pTxt(pdf,frLong(s.issue),506,398,{size:17,align:'center',w:210});
+  pImg(pdf,'DIRLINE',71,429,211); pImg(pdf,'DATELINE',506,429,211);
+  pTxt(pdf,'Tél: 514-307-0666      Adresse: 220-5490 Av. Royalmount, Mont-Royal, QC H4P 1H7',139,494,{size:11.5});
+}
+function drawP2(pdf,s){
+  const name=fullName(s);
+  pImg(pdf,'WM',94,238,388,388); pImg(pdf,'LOGO',50,55,152);
+  pBar(pdf,[['g',12],['b',17],['t',14],['g',20],['b',17],['t',20]],49.65,125,495.75,4.5);
+  pTxt(pdf,"Attestation d' études",53,166,{size:21,bold:true,align:'center',w:488});
+  const B={size:9,bold:true};
+  pTxt(pdf,`INFORMATION DE ${s.f?'L’ÉTUDIANTE':'L’ÉTUDIANT'}:`,53,218,B);
+  pTxt(pdf,`Nom de famille: ${s.nom}`,53,252,B);
+  pTxt(pdf,`Prénom: ${s.prenom}`,53,272,B);
+  pTxt(pdf,`Numéro d’identification étudiant: ${s.sid}`,53,292,B);
+  pTxt(pdf,'À qui de droit,',53,352,{size:9});
+  pPara(pdf,`Par la présente, nous certifions que ${name} ${s.ongoing?'suit actuellement':'a complété'} le programme de ${s.prog}${s.online?' en ligne':''} tel qu'offert par l'Institut de Langues de Montréal. ${name} a commencé ses études le ${frLong(s.start)}${s.ongoing?'':' et les a terminées le '+frLong(s.end)}.`,53,386,488,{size:9,lh:14});
+  pPara(pdf,`${name} ${s.ongoing?'est':"s'était"} ${s.f?'inscrite':'inscrit'} ${MODE_FR[s.mode]}${s.online?' aux cours en ligne de':' à'} l'Institut de langues de Montréal.`,53,444,488,{size:9,lh:14});
+  pTxt(pdf,'Cordialement,',53,533,B); pTxt(pdf,'Lei Shang',53,551,B); pTxt(pdf,'Directrice',53,601,B);
+  pTxt(pdf,'Reference Nº: C20250194',53,637,{size:9,bold:true,lh:16});
+  pTxt(pdf,'Date: '+frLong(s.issue),53,653,{size:9,bold:true,lh:16});
+  pImg(pdf,'LC',382,634,152);
+  pBar(pdf,[['g',18],['b',20],['t',14],['g',16],['b',16],['t',16]],49.65,733,495.75,4.5);
+  pContact(pdf,744);
+  pTxt(pdf,'220-5490 Av. Royalmount, Mont-Royal, QC H4P 1H7',0,761,{size:8,serif:true,align:'center',w:612});
+}
+function drawP3(pdf,s){
+  pImg(pdf,'LOGO',50,22,152);
+  pBar(pdf,[['g',26],['b',27],['t',47]],49.75,84,512.55,2);
+  const H={size:10,bold:true,lh:12};
+  pTxt(pdf,`${s.f?'Étudiante':'Étudiant'}: ${fullName(s)}`,52,113,H);
+  pTxt(pdf,`Numéro d’identification étudiant: ${s.sid}`,52,126,H);
+  pTxt(pdf,`Programme: ${s.prog}`,52,145,H);
+  pTxt(pdf,`Date : ${frLong(s.issue)}`,52,163,H);
+  pTxt(pdf,"L'institut de Langues de Montréal - Rapport Académique",0,182,{size:12.5,bold:true,align:'center',w:612});
+  const cols=[237,318,400,481], skills=['Compréhension orale','Expression orale','Compréhension écrite','Expression écrite'];
+  const rows=stages.slice(); if(s.pad) while(rows.length<MAX_STAGES) rows.push(null);
+  const top0=212; pdf.setDrawColor(0,0,0); pdf.setLineWidth(.8);
+  rows.forEach((r,i)=>{
+    const y=top0+i*53+0.8;
+    pdf.line(53,y-0.4,559,y-0.4);
+    skills.forEach((k,j)=>pTxt(pdf,k,cols[j],y+3,{size:6.8,bold:true,align:'center',w:81}));
+    pTxt(pdf,'Niveau',53,y+3,{bold:true}); pTxt(pdf,'Note',184,y+17,{bold:true});
+    pTxt(pdf,'Terme',53,y+31,{bold:true}); pTxt(pdf,'Présence',184,y+31,{bold:true});
+    if(r){
+      pTxt(pdf,r.level,53,y+17);
+      ['co','eo','ce','ee'].forEach((k,j)=>{ if(r[k]) pTxt(pdf,r[k],cols[j],y+17,{align:'center',w:81}); });
+      if(r.pres) pTxt(pdf,r.pres.replace(/%$/,'')+'%',cols[3],y+31,{align:'center',w:81});
+      if(r.from||r.to) pTxt(pdf,r.to?'du '+dmy(r.from)+' au '+dmy(r.to):'depuis le '+dmy(r.from),53,y+42);
+    }
+  });
+  const bottom=top0+rows.length*53+2; pdf.line(53,bottom+0.4,559,bottom+0.4);
+  pImg(pdf,'LC',460,688,90);
+  pBar(pdf,[['g',26],['b',27],['t',47]],49.75,733,512.5,4.5);
+  pContact(pdf,744);
+  pTxt(pdf,'220-5490 Av. Royalmount, Mont-Royal, QC H4P 1H7',0,761,{size:8,serif:true,align:'center',w:612});
+}
+const PDF_OK=/^[\x20-\x7E -ÿ’‘“”–—ŒœŸ€]*$/;
 async function generate(){
   const s = state();
   const w = validate(s);
   if(!s.inc.some(Boolean)){ $('status').textContent='请至少勾选一份文件。'; return; }
   if(w.length && !confirm('以下项目需要确认：\n\n'+w.join('\n')+'\n\n仍要生成 PDF？')) return;
-  if(!window.jspdf || !window.html2canvas){ $('status').textContent='PDF 组件加载失败：请确认网络连接后刷新页面。'; return; }
+  if(!window.jspdf){ $('status').textContent='PDF 组件加载失败：请确认网络连接后刷新页面。'; return; }
   const btn=$('gen'); btn.disabled=true; $('status').textContent='生成中…';
   try{
-    const defs=[[page1,'l'],[page2,'p'],[page3,'p']].filter((_,i)=>s.inc[i]);
     const {jsPDF} = window.jspdf;
     let pdf=null;
-    const cap=$('capture');
-    for(let i=0;i<defs.length;i++){
-      const [fn,o]=defs[i];
-      cap.innerHTML = fn(s).replace(/<span class="ph">([\s\S]*?)<\/span>/g,'');
-      const el = cap.firstElementChild;
-      await waitImages(cap);
-      const canvas = await html2canvas(el,{scale:3,backgroundColor:'#ffffff',useCORS:true,logging:false});
-      const data = canvas.toDataURL('image/jpeg',0.92);
-      const W = o==='l'?792:612, H = o==='l'?612:792;
-      if(!pdf) pdf = new jsPDF({unit:'pt',format:'letter',orientation:o==='l'?'landscape':'portrait',compress:true});
-      else pdf.addPage('letter', o==='l'?'landscape':'portrait');
-      pdf.addImage(data,'JPEG',0,0,W,H,undefined,'FAST');
-    }
-    cap.innerHTML='';
+    const defs=[[drawP1,'l'],[drawP2,'p'],[drawP3,'p']].filter((_,i)=>s.inc[i]);
+    defs.forEach(([fn,o])=>{
+      const ori=o==='l'?'landscape':'portrait';
+      if(!pdf) pdf=new jsPDF({unit:'pt',format:'letter',orientation:ori,compress:true}); else pdf.addPage('letter',ori);
+      fn(pdf,s);
+    });
+    pdf.setProperties({title:'Attestation - '+fullName(s),author:"L'institut de langues de Montréal"});
     const safe = x=>x.replace(/[\\/:*?"<>|]+/g,'').trim();
     const nm = safe(fullName(s)) || '学生姓名';
     const fname = `${nm}_Attestation_${s.issue||'开立日期'}.pdf`;
