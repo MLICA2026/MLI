@@ -306,12 +306,12 @@ function calc(c){
     if(x.f){w++;x.lab='外'+w;x.wi=w}else{z++;x.lab='中'+z;x.zi=z}
    });
    plan={z,w,needZ:full?15:17,needW:full?9:8,full,std:N===cf.s+a0-3};
-   {const nA=ss.find(x=>x.zi===8),oA=ss.find(x=>x.wi===(full?6:5));anchor=nA&&nA.d>='2026-10-23'?nA:(oA||nA);} // 期中：2026/10/23 起改为中教上完第 8 堂后开始（居家）；已过的班维持旧规则（外6/外5）
+   {const nA=ss.find(x=>x.zi===8),oA=ss.find(x=>x.wi===(full?6:5));anchor=nA&&nA.d>='2026-10-23'?{d:addD(nA.d,1)}:(oA||(nA&&{d:addD(nA.d,1)}));} // 期中：2026/10/23 起改为中教第 8 堂的第二天开始（居家，不论平日或周末）；已过的班维持旧规则（外6/外5）
   }
   let mid=null,midHome=false;
   if(cf.mid){
    if(noMid){ if(newA1&&ss.length>a0){mid=ov.mid||(anchor?anchor.d:ss[Math.min(cf.mid,ss.length)-1].d);midHome=true}
-    else if(k==='A2'&&ss.length){const zs=ss.filter(x=>!x.f);const z11=(c.fr||[]).length&&zs.length>=11?zs[10]:null;mid=ov.mid||(z11?z11.d:ss[Math.ceil(ss.length/2)-1].d);midHome=true} }
+    else if(k==='A2'&&ss.length){const zs=ss.filter(x=>!x.f);const z11=(c.fr||[]).length&&zs.length>=11?zs[10]:null;mid=ov.mid||(z11?addD(z11.d,1):ss[Math.ceil(ss.length/2)-1].d);midHome=true} /* A2 期中：中教上完第 11 课的第二天开始（居家） */ }
    else mid=ov.mid||(ss[cf.mid-1]?ss[cf.mid-1].d:null);
   }
   if(mid&&!midHome){const x=ss.find(x=>x.d===mid);if(x)x.m='期中'}
@@ -328,7 +328,7 @@ function calc(c){
  }
  return out;
 }
-const midStr=s=>s.mid?(s.midHome?mdw(s.mid)+' 当周（居家）':mdw(s.mid)):(s.noMid?'无期中':'—');
+const midStr=s=>s.mid?(s.midHome?mdw(s.mid)+'（居家）起':mdw(s.mid)):(s.noMid?'无期中':'—');
 function info(c){
  const S=calc(c); const first=S[0],last=S[S.length-1];
  let cur=S.find(s=>s.start<=TODAY&&TODAY<=s.end)||null;
@@ -406,7 +406,7 @@ function render(){
 function allEvents(){
  const ev=[];
  for(const c of CLS){const I=info(c);for(const s of I.S){
-  if(s.mid) ev.push({d:s.mid,t:s.midHome?'期中（居家，当周）':'期中',c,s});
+  if(s.mid) ev.push({d:s.mid,t:s.midHome?'期中（居家）起':'期中',c,s});
   s.fin.forEach((d,i)=>ev.push({d,t:s.fin.length>1?`期末 ${i+1}/${s.fin.length}`:'期末',c,s}));
   ev.push({d:s.start,t:'开始',c,s,tr:1});
  }}
@@ -525,7 +525,7 @@ function vGantt(){
   return `<div class="gr" onclick="openC('${c.id}')"><div class="lab"><b>${c.code}</b><span>${c.cat.replace('班','')} · ${c.ft?'全日':'兼读'} · ${wdStr(c.wd)}</span></div><div class="gt" style="width:${W}px">${lines}${bars}</div></div>`}).join('');
  return filt(true)+`<div class="row"><select onchange="GW.m=+this.value;render()">${[3,6,9,12,18].map(n=>`<option value="${n}" ${GW.m===n?'selected':''}>显示 ${n} 个月</option>`).join('')}</select>
  <button class="btn" onclick="GW.off-=1;render()">◀ 往前</button><button class="btn" onclick="GW.off=-1;render()">本月</button><button class="btn" onclick="GW.off+=1;render()">往后 ▶</button>
- <div class="legend">${Object.keys(DEF_CFG.st).map(k=>`<span><i style="background:${color(k)}"></i>${CFG.st[k].n}</span>`).join('')}<span>◆ 期中</span><span>◇ 居家期中（当周）</span><span>★ 期末</span><span><i style="background:var(--acc);width:3px"></i>今天</span></div></div>
+ <div class="legend">${Object.keys(DEF_CFG.st).map(k=>`<span><i style="background:${color(k)}"></i>${CFG.st[k].n}</span>`).join('')}<span>◆ 期中</span><span>◇ 居家期中（起）</span><span>★ 期末</span><span><i style="background:var(--acc);width:3px"></i>今天</span></div></div>
  <div class="gwrap"><div class="g" style="width:${W+150}px"><div class="gh"><div class="lab">班级（${L.length}）</div><div class="gt" style="width:${W}px;position:relative">${months}${TODAY>=w0&&TODAY<w1?`<div class="today" style="left:${tx}px"></div>`:''}</div></div>
  <div style="position:relative">${rows}${TODAY>=w0&&TODAY<w1?`<div class="today" style="left:${tx+(innerWidth<=640?96:150)}px"></div>`:''}</div></div></div>`;
 }
@@ -624,7 +624,7 @@ function result(c,plain){
 function pdfSched(){
  const c=RESC;if(!c)return;const I=info(c);const nm=(c.code||(c.start||'').slice(2).replace(/-/g,''))||'新班';
  const ttl=`MLI 排课 · ${(isWest(c)?'加西':'')+nm}`;
- const exm=(s,x)=>x.m?x.m:(s.midHome&&x.d===s.mid?'期中（居家）当周':'');
+ const exm=(s,x)=>x.m?x.m:(s.midHome&&x.d===s.mid?'期中（居家）起':'');
  const h=`<h1 style="font-size:20px;margin:0 0 4px">${esc(ttl)}</h1>
  <div style="margin-bottom:10px;color:#555">${esc(c.cat)} · ${c.ft?'全日':'兼读'} · 上课日 ${wdStr(c.wd)} · 第一堂 ${mdw(I.S[0].start)} · 全程到 ${mdw(I.last.end)}，共 ${I.S.reduce((a,s)=>a+s.cnt,0)} 次课</div>
  <table class="pt"><tr><th>阶段</th><th>开始</th><th>结束</th><th>次数</th><th>期中</th><th>期末</th></tr>${I.S.map(s=>`<tr><td><b>${s.n}</b></td><td>${mdw(s.start)}</td><td>${mdw(s.end)}</td><td>${s.cnt}</td><td>${s.mid?midStr(s):'—'}</td><td>${s.fin.length?s.fin.map(mdw).join('、'):'—'}</td></tr>`).join('')}</table>
@@ -639,8 +639,8 @@ async function dlSched(){
  const c=RESC;if(!c)return;try{await loadXLSX()}catch(e){alert(e.message);return}
  const I=info(c);const nm=(c.code||(c.start||'').slice(2).replace(/-/g,''))||'新班';
  const head=[['班级',(isWest(c)?'加西':'')+nm,c.cat,c.ft?'全日':'兼读','上课日 '+wdStr(c.wd)],[]];
- const a=[...head,['阶段','开始','结束','次数','期中','期末'],...I.S.map(s=>[s.n,s.start,s.end,s.cnt,s.mid?(s.midHome?s.mid+' 当周（居家）':s.mid):'',s.fin.join('、')])];
- const b=[['阶段','第几堂','日期','星期',...(RPLAIN?[]:['中/外']),'考试'],...I.S.flatMap(s=>s.ss.map(x=>[s.n,x.i,x.d,CN[wdOf(x.d)],...(RPLAIN?[]:[mixed(c,s)&&!c.unset?(x.lab||(x.f?'外':'中')):'']),x.m||(s.midHome&&x.d===s.mid?'期中（居家）当周':'')]))];
+ const a=[...head,['阶段','开始','结束','次数','期中','期末'],...I.S.map(s=>[s.n,s.start,s.end,s.cnt,s.mid?(s.midHome?s.mid+'（居家）起':s.mid):'',s.fin.join('、')])];
+ const b=[['阶段','第几堂','日期','星期',...(RPLAIN?[]:['中/外']),'考试'],...I.S.flatMap(s=>s.ss.map(x=>[s.n,x.i,x.d,CN[wdOf(x.d)],...(RPLAIN?[]:[mixed(c,s)&&!c.unset?(x.lab||(x.f?'外':'中')):'']),x.m||(s.midHome&&x.d===s.mid?'期中（居家）起':'')]))];
  const wb=XLSX.utils.book_new();const w1=XLSX.utils.aoa_to_sheet(a);w1['!cols']=[{wch:12},{wch:12},{wch:12},{wch:6},{wch:22},{wch:24}];
  const w2=XLSX.utils.aoa_to_sheet(b);w2['!cols']=[{wch:12},{wch:7},{wch:12},{wch:5},{wch:8},{wch:16}];
  XLSX.utils.book_append_sheet(wb,w1,'各阶段');XLSX.utils.book_append_sheet(wb,w2,'逐堂日期');
@@ -699,7 +699,7 @@ function chgEx(id,k,type){
  const c=CLS.find(x=>x.id===id); if(!c)return;
  const s=calc(c).find(x=>x.k===k);
  const cur=type==='mid'?(s&&s.mid?s.mid:''):(s?s.fin.join(', '):'');
- const v=prompt(type==='mid'?`新的期中日期（如 11/20；居家期中填该周任一天）\n留空＝恢复自动计算`:`新的期末日期，两天考请用逗号分开（如 11/20, 11/23）\n留空＝恢复自动计算`,cur);
+ const v=prompt(type==='mid'?`新的期中日期（如 11/20；居家期中填开始日）\n留空＝恢复自动计算`:`新的期末日期，两天考请用逗号分开（如 11/20, 11/23）\n留空＝恢复自动计算`,cur);
  if(v===null)return;
  c.exOv=c.exOv||{};c.exOv[k]=c.exOv[k]||{};
  const ds=v.split(/[,，、\s]+/).map(x=>normDate(x,s&&s.start)).filter(Boolean).sort();
@@ -759,7 +759,7 @@ const EXCOL=[['mail','邮件给老师'],['recv','老师收到'],['bell','铃铛�
 function exRows(list,edit){
  return list.map((e,i)=>{const st=EX[e.id]||{};const ds=exDays(e);
   const ts=[...new Map(ds.flatMap(x=>x.t).map(t=>[t.id,t])).values()];
-  const dateCell=ds.map(x=>e.home?md(x.d)+' 当周':mdw(x.d)+(x.lab?' '+x.lab:'')).join('<br>');
+  const dateCell=ds.map(x=>e.home?md(x.d)+' 起':mdw(x.d)+(x.lab?' '+x.lab:'')).join('<br>');
   const tCell=ds.map(x=>x.t.map(t=>esc(t.n)).join('、')+(x.lab?'('+x.lab+')':'')).join('<br>');
   const mCell=ts.map(t=>CFG.mail[t.id]?esc(CFG.mail[t.id]):`<span class="tag t-w">${esc(t.n)} 无邮箱</span>`).join('<br>');
   const ck=EXCOL.map(([k])=>{
