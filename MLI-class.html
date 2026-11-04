@@ -210,6 +210,9 @@ PATCHES.push({id:'p1022-cal',run:()=>{CFG.payAdj=CFG.payAdj||JSON.parse(JSON.str
 PATCHES.push({id:'p1022-hol1228',run:()=>{CFG.hol=CFG.hol||[];if(!CFG.hol.includes('2026-12-28')){CFG.hol.push('2026-12-28');CFG.hol.sort()}}});
 PATCHES.push({id:'p1022-hol1226',run:()=>{CFG.hol=CFG.hol||[];if(!CFG.hol.includes('2026-12-26')){CFG.hol.push('2026-12-26');CFG.hol.sort()}}});
 PATCHES.push({id:'p1023-xmas',run:()=>{CFG.hol=CFG.hol||[];['2026-12-24','2026-12-31'].forEach(d=>{if(!CFG.hol.includes(d))CFG.hol.push(d)});CFG.hol.sort()}});
+PATCHES.push({id:'p1103-261030',run:()=>{if(CLS.some(c=>c.id==='261030'))return;CLS.unshift({id:'261030',code:'261030',cat:'加东中国班',ft:false,coh:'2026-10-30',stage:'A1',start:'2026-10-30',wd:[0,2,4],fr:[2],off:[],note:'线上班；A0 语音由 Shawn 上（含周三）',unset:false,sheetEnd:'',a0:3,ph:'Shawn',tch:[{id:'shawn',n:'Shawn',zh:true,d:[0,4]},{id:'sharfaa',n:'Sharfaa',zh:false,d:[2]}]})}});
+PATCHES.push({id:'p1103-0417tt',run:()=>{const c=CLS.find(c=>c.id==='260417');if(!c)return;c.tch.forEach(t=>{if(t.zh&&/tingting/i.test(t.id+t.n)&&!(t.stg&&t.stg.length))t.stg=['A1','A2','C5G','C5T']})}});
+PATCHES.push({id:'p1026-1229wj',run:()=>{['261001','261002'].forEach(id=>{const c=CLS.find(c=>c.id===id);if(!c)return;c.off=c.off||[];if(!c.off.includes('2026-12-29')){c.off.push('2026-12-29');c.off.sort()}})}});
 function applyPatches(){CFG.patches=CFG.patches||[];let ch=false;PATCHES.forEach(p=>{if(CFG.patches.includes(p.id))return;try{p.run();CFG.patches.push(p.id);ch=true}catch(e){}});return ch}
 // ---- 练习模式 ----
 let DEMO=null;
@@ -293,7 +296,8 @@ function calc(c){
   const ov=(c.exOv&&c.exOv[k])||{};
   const ss=[];
   const stK=c.tch.some(t=>t.stg&&t.stg.includes(k));
-  for(let j=0;j<n&&d;j++){let f=fr.has(wdOf(d));if(stK){const a=tOfDay(c,wdOf(d),d,k);if(a.length)f=a.every(t=>!t.zh)}ss.push({d,i:j+1,f});used.add(d);if(j<n-1)d=next(d)}
+  const clbW=!isIntl(c)&&CLBK.includes(k);
+  for(let j=0;j<n&&d;j++){let f=fr.has(wdOf(d));if(stK||clbW){const a=tOfDay(c,wdOf(d),d,k);if(a.length)f=a.every(t=>!t.zh);else if(clbW)f=true}ss.push({d,i:j+1,f});used.add(d);if(j<n-1)d=next(d)}
   const noMid=!!(cf.noMid&&c.coh>=CFG.noMidFrom);
   const newA1=k==='A1'&&noMid;
   let plan=null,anchor=null;
@@ -301,17 +305,17 @@ function calc(c){
    // 新版 A1：29 个连续上课日 = A0 3 堂 + 内容课 + (全日 Bilan+期末 / 兼读 期末)；内容课依星期归中教或外教
    const full=c.ft,N=ss.length,exN=full?2:1;let z=0,w=0;
    ss.forEach((x,j)=>{
-    if(j<a0){x.lab='A0-'+(j+1);x.a0=1;return}
+    if(j<a0){x.lab='A0-'+(j+1);x.a0=1;if(c.ph){const t=c.tch.find(t=>t.n===c.ph||t.id===c.ph);if(t)x.f=!t.zh}return}
     if(j>=N-exN){x.lab=(x.f?'外':'中')+'·'+(j===N-1?'期末':'Bilan');return}
     if(x.f){w++;x.lab='外'+w;x.wi=w}else{z++;x.lab='中'+z;x.zi=z}
    });
    plan={z,w,needZ:full?15:17,needW:full?9:8,full,std:N===cf.s+a0-3};
-   {const nA=ss.find(x=>x.zi===8),oA=ss.find(x=>x.wi===(full?6:5));anchor=nA&&nA.d>='2026-10-23'?{d:addD(nA.d,1)}:(oA||(nA&&{d:addD(nA.d,1)}));} // 期中：2026/10/23 起改为中教第 8 堂的第二天开始（居家，不论平日或周末）；已过的班维持旧规则（外6/外5）
+   {const nA=ss.find(x=>x.zi===8),oA=ss.find(x=>x.wi===(full?6:5));anchor=nA&&nA.d>='2026-10-23'?{d:addD(nA.d,1)}:(oA||nA);} // 期中：中教第 8 堂的第二天开始（居家，不论平日或周末）；2026/10/23 前已过的班维持旧规则（外6/外5）
   }
   let mid=null,midHome=false;
   if(cf.mid){
    if(noMid){ if(newA1&&ss.length>a0){mid=ov.mid||(anchor?anchor.d:ss[Math.min(cf.mid,ss.length)-1].d);midHome=true}
-    else if(k==='A2'&&ss.length){const zs=ss.filter(x=>!x.f);const z11=(c.fr||[]).length&&zs.length>=11?zs[10]:null;mid=ov.mid||(z11?addD(z11.d,1):ss[Math.ceil(ss.length/2)-1].d);midHome=true} /* A2 期中：中教上完第 11 课的第二天开始（居家） */ }
+    else if(k==='A2'&&ss.length){const zs=ss.filter(x=>!x.f);const z11=(c.fr||[]).length&&zs.length>=11?zs[10]:null;mid=ov.mid||(z11?addD(z11.d,1):ss[Math.ceil(ss.length/2)-1].d);midHome=true} }
    else mid=ov.mid||(ss[cf.mid-1]?ss[cf.mid-1].d:null);
   }
   if(mid&&!midHome){const x=ss.find(x=>x.d===mid);if(x)x.m='期中'}
@@ -328,7 +332,7 @@ function calc(c){
  }
  return out;
 }
-const midStr=s=>s.mid?(s.midHome?mdw(s.mid)+'（居家）起':mdw(s.mid)):(s.noMid?'无期中':'—');
+const midStr=s=>s.mid?(s.midHome?mdw(s.mid)+' 起（居家）':mdw(s.mid)):(s.noMid?'无期中':'—');
 function info(c){
  const S=calc(c); const first=S[0],last=S[S.length-1];
  let cur=S.find(s=>s.start<=TODAY&&TODAY<=s.end)||null;
@@ -385,7 +389,9 @@ const hasStg=c=>c.tch.some(t=>t.stg&&t.stg.length);
 function stageAt(c,d){const S=calc(c);if(!S.length)return null;for(const s of S)if(d>=s.start&&d<=s.end)return s.k;if(d<S[0].start)return S[0].k;for(let i=S.length-1;i>=0;i--)if(d>S[i].end)return S[i+1]?S[i+1].k:S[i].k;return null}
 const stgName=k=>CFG.st[k]?CFG.st[k].n:k;
 function stgLab(t,path){if(!t.stg||!t.stg.length)return '';const i=path.indexOf(t.stg[0]);const tail=path.slice(i);if(i>=0&&t.stg.length===tail.length&&tail.every((k,j)=>t.stg[j]===k)&&tail.length>1)return stgName(t.stg[0])+' 起';return t.stg.map(stgName).join('、')}
-function tOfDay(c,i,d,k){d=d||TODAY;if(!k&&hasStg(c))k=stageAt(c,d);const L=c.tch.filter(t=>tAct(t,d,k));let a=L.filter(t=>t.d&&t.d.includes(i));if(!a.length)a=L.filter(t=>!t.d||!t.d.length);return a;}
+function phDates(c){if(!c.ph)return null;const key=JSON.stringify([c.start,c.stage,c.wd,c.off,c.a0,c.stOv,c.sOv,(CFG.hol||[]).length,(CFG.holW||[]).length]);if(c._phK===key)return c._ph;Object.defineProperty(c,'_phK',{value:key,writable:true,configurable:true,enumerable:false});c._ph=null;const S=calc(c),a=S.find(s=>s.k==='A1');const set=new Set(a?a.ss.filter(x=>x.a0).map(x=>x.d):[]);Object.defineProperty(c,'_ph',{value:set,writable:true,configurable:true,enumerable:false});return set}
+function phT(c,d){if(!c.ph||!d)return null;const P=phDates(c);if(!P||!P.has(d))return null;const t=c.tch.find(t=>t.n===c.ph||t.id===c.ph);return t||null}
+function tOfDay(c,i,d,k){d=d||TODAY;{const p=phT(c,d);if(p)return [p];}if(!k&&(hasStg(c)||(!isIntl(c)&&c.tch.some(t=>t.zh&&!(t.stg&&t.stg.length)))))k=stageAt(c,d);const L=c.tch.filter(t=>tAct(t,d,k)&&!zhOut(c,t,k));let a=L.filter(t=>t.d&&t.d.includes(i));if(!a.length)a=L.filter(t=>!t.d||!t.d.length);return a;}
 function tchStr(c){let live=null;if(hasStg(c)){const S=calc(c);live=new Set(S.filter(s=>s.end>=TODAY).map(s=>s.k));}const path=pathOf(c);return c.tch.filter(t=>(!t.to||t.to>=TODAY)&&(!live||!t.stg||!t.stg.length||t.stg.some(k=>live.has(k)))).map(t=>`<b style="color:${tcol(c,t)}">${esc(t.n)}</b><span class="tg">${t.zh?'中':'外'}</span>${t.sk?'<span class="tg">'+t.sk+'</span>':''}${t.stg&&t.stg.length?'<span class="tg">'+esc(stgLab(t,path))+'</span>':''}${t.d&&t.d.length?'<span class="mut">（'+wdStr(t.d)+'）</span>':''}`).join('、')}
 function wdHtml(c){return c.wd.map(i=>{const a=tOfDay(c,i);const col=a.length===1?tcol(c,a[0]):'var(--mut)';return `<span class="wdc" style="color:${col};border-color:${col}" title="${esc(a.map(t=>t.n).join('、')||'未指定')}">${CN[i]}</span>`}).join('')}
 // ---- views ----
@@ -422,7 +428,7 @@ function vOv(){
   const e30=examList().filter(e=>e.c.cat===cat&&e.dates.some(d=>d>=TODAY&&d<=h30)).length,e7=examList().filter(e=>e.c.cat===cat&&e.dates.some(d=>d>=TODAY&&d<=h7)).length;
   return `<div class="kpi" onclick="F.cat='${cat}';F.st='';go('list')"><div class="l">${cat}</div><b>${on}</b><small>进行中 · 即将开课 ${up}<br>30 天内考试 ${e30}（7 天内 ${e7}）</small></div>`}).join('')+`</div>`;
  const ev=allEvents().filter(e=>all||e.c.cat===QC);
- const lim=addD(addD(TODAY.slice(0,8)+'01',62).slice(0,8)+'01',-1);const exAll=ev.filter(e=>!e.tr&&e.d>=addD(TODAY,-7));const exams=window.EXALL?exAll:exAll.filter(e=>e.d<=lim);const more=exAll.length-exams.length;
+ const lim=addD(addD(TODAY.slice(0,8)+'01',62).slice(0,8)+'01',-1);const exAll=ev.filter(e=>!e.tr&&e.d>=addD(TODAY,-wdOf(TODAY)));const exams=window.EXALL?exAll:exAll.filter(e=>e.d<=lim);const more=exAll.length-exams.length;
  const by={};exams.forEach(e=>{const m=e.d.slice(0,7);(by[m]=by[m]||[]).push(e)});
  const cal=Object.keys(by).map(m=>`<div class="card"><h2>考试日历 · ${m.slice(0,4)} 年 ${+m.slice(5)} 月（${by[m].length}）</h2>${evTable(by[m])}</div>`).join('')||'<div class="card"><span class="mut">没有考试</span></div>';
  const calX=cal+(more?`<div class="row" style="margin:-6px 0 14px"><button class="btn" onclick="EXALL=1;render()">显示之后的考试（还有 ${more} 场）</button></div>`:window.EXALL?`<div class="row" style="margin:-6px 0 14px"><button class="btn" onclick="EXALL=0;render()">只看到下个月</button></div>`:'');
@@ -441,7 +447,9 @@ function evTable(ev,tr){
 const ROT_DEF={nina:'A2','xiao-zhang':'A2','feng-dai':'A2',vera:'C5G','sun-zhen':'C5G'};
 const ROT_WHY={A2:'只教到 A2（不教 B1 语法、不教 TCF）',C5G:'全职：教完 CLB5 语法回去带新班',C5T:'教到 CLB5 TCF（之后 CLB6/7 纯外教）'};
 let ROTF='zh';
-function rotLv(id){return (CFG.rotLv&&CFG.rotLv[id])||ROT_DEF[id]||'C5T'}
+function rotLv(id){return (CFG.rotLv&&CFG.rotLv[id])||ROT_DEF[id]||'C5G'}
+const CLBK=['C5T','C6','C7'];
+function zhOut(c,t,k){if(!t.zh||isIntl(c)||(t.stg&&t.stg.length)||!k)return false;const path=pathOf(c);const lv=rotLv(t.id);const ex=path.includes(lv)?lv:'A2';return path.indexOf(k)>path.indexOf(ex)}
 function rotSet(id,v){CFG.rotLv=CFG.rotLv||{};CFG.rotLv[id]=v;save();render()}
 function slotStr(c,days){const g={};[...days].sort((a,b)=>a-b).forEach(i=>{const tm=(c.tm&&c.tm[i])||'';(g[tm]=g[tm]||[]).push(CN[i])});return Object.entries(g).map(([tm,ds])=>'周'+ds.join('')+(tm?' '+tm:'')).join('；')}
 function rotData(){
@@ -462,7 +470,7 @@ function rotData(){
    ev.push({d,c,t,kind:'out',k:s.k,sn:s.n,slot:slotStr(c,days),why,n:days.length});
    if(t.zh&&!isIntl(c)&&!expl&&exitK==='C5T'){const iT=path.indexOf('C5T'),pk=path[iT-1],ps=S.find(x=>x.k===pk),keep=c.ft?2:1;let pd='';if(ps)ps.ss.forEach(y=>{if(y.d>pd&&tOfDay(c,wdOf(y.d),y.d,pk).includes(t))pd=y.d});
     if(ps&&pd&&pd>=TODAY&&days.length>keep)ev.push({d:pd,c,t,kind:'cut',k:pk,sn:ps.n,slot:slotStr(c,days),why:'CLB5 TCF 中教只上每周 '+keep+' 次（'+(c.ft?'全日':'兼读')+'），目前 '+days.length+' 天要释出 '+(days.length-keep)+' 天给外教',n:days.length-keep})}
-   if(t.zh&&!isIntl(c)&&!expl&&!t.to){const after=S.filter(x=>path.indexOf(x.k)>path.indexOf(exitK));if(after.length)soft.push({c,t,s:after[0]})}
+   if(false){const after=S.filter(x=>path.indexOf(x.k)>path.indexOf(exitK));if(after.length)soft.push({c,t,s:after[0]})}
   });
  });
  ev.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.t.n.localeCompare(b.t.n));
@@ -483,8 +491,8 @@ function vRot(){
  const rules=`<div class="card"><b>带班规则</b>
  <ul class="small" style="margin:6px 0 10px 18px;padding:0;line-height:1.7">
  <li>CLB5 语法：中外教分配跟 A2 一样。</li>
- <li>CLB5 TCF：兼读 外教 2 次、中教 1 次；全日 中教 2 次、外教 3 次。听力口语（CO+EO）给外教，阅读写作（CE+EE）给中教。</li>
- <li>CLB6、CLB7：纯外教。加东通常加一位考官只负责口语，原本的外教改带听力、阅读、写作。</li>
+ <li>CLB5 TCF、CLB6、CLB7：以外教为主，中教默认不带。少数中教会上 CLB5 TCF：在下方把那位中教设成「CLB5 TCF」，或在班级页给他那一行选阶段。</li>
+ <li>CLB6、CLB7：加东通常加一位考官只负责口语，原本的外教改带听力、阅读、写作。</li>
  <li>国际班、外教：带到全班结课。</li></ul>
  <div class="note" style="margin-bottom:6px">每位中教教到哪个阶段（改了会存到共用资料）：</div>
  <div style="display:flex;flex-wrap:wrap;gap:8px">${zhs.map(([id,n])=>`<label class="small" style="display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:4px 8px">${esc(n)}<select onchange="rotSet('${id}',this.value)">${[['A2','A2'],['C5G','CLB5 语法'],['C5T','CLB5 TCF']].map(([k,l])=>`<option value="${k}" ${rotLv(id)===k?'selected':''}>${l}</option>`).join('')}</select></label>`).join('')}</div></div>`;
@@ -525,12 +533,12 @@ function vGantt(){
   return `<div class="gr" onclick="openC('${c.id}')"><div class="lab"><b>${c.code}</b><span>${c.cat.replace('班','')} · ${c.ft?'全日':'兼读'} · ${wdStr(c.wd)}</span></div><div class="gt" style="width:${W}px">${lines}${bars}</div></div>`}).join('');
  return filt(true)+`<div class="row"><select onchange="GW.m=+this.value;render()">${[3,6,9,12,18].map(n=>`<option value="${n}" ${GW.m===n?'selected':''}>显示 ${n} 个月</option>`).join('')}</select>
  <button class="btn" onclick="GW.off-=1;render()">◀ 往前</button><button class="btn" onclick="GW.off=-1;render()">本月</button><button class="btn" onclick="GW.off+=1;render()">往后 ▶</button>
- <div class="legend">${Object.keys(DEF_CFG.st).map(k=>`<span><i style="background:${color(k)}"></i>${CFG.st[k].n}</span>`).join('')}<span>◆ 期中</span><span>◇ 居家期中（起）</span><span>★ 期末</span><span><i style="background:var(--acc);width:3px"></i>今天</span></div></div>
+ <div class="legend">${Object.keys(DEF_CFG.st).map(k=>`<span><i style="background:${color(k)}"></i>${CFG.st[k].n}</span>`).join('')}<span>◆ 期中</span><span>◇ 居家期中（当周）</span><span>★ 期末</span><span><i style="background:var(--acc);width:3px"></i>今天</span></div></div>
  <div class="gwrap"><div class="g" style="width:${W+150}px"><div class="gh"><div class="lab">班级（${L.length}）</div><div class="gt" style="width:${W}px;position:relative">${months}${TODAY>=w0&&TODAY<w1?`<div class="today" style="left:${tx}px"></div>`:''}</div></div>
  <div style="position:relative">${rows}${TODAY>=w0&&TODAY<w1?`<div class="today" style="left:${tx+(innerWidth<=640?96:150)}px"></div>`:''}</div></div></div>`;
 }
 function vExam(){
- const ev=allEvents().filter(e=>!e.tr&&e.d>=addD(TODAY,-7)&&(!F.cat||e.c.cat===F.cat));
+ const ev=allEvents().filter(e=>!e.tr&&e.d>=addD(TODAY,-wdOf(TODAY))&&(!F.cat||e.c.cat===F.cat));
  const by={};ev.forEach(e=>{const k=e.d.slice(0,7);(by[k]=by[k]||[]).push(e)});
  return filt(false)+Object.keys(by).map(k=>`<div class="card"><h2>${k.slice(0,4)} 年 ${+k.slice(5)} 月（${by[k].length}）</h2>${evTable(by[k])}</div>`).join('')+(ev.length?'':'<p class="mut">没有考试</p>');
 }
@@ -545,6 +553,7 @@ function editor(c,pfx){
  <label class="f">从哪个阶段算起<select id="${pfx}stage">${path.map(k=>`<option value="${k}" ${c.stage===k?'selected':''}>${CFG.st[k].n}</option>`).join('')}</select></label>
  <label class="f">该阶段第一堂课<input type="date" id="${pfx}start" value="${c.start||''}"></label>
  <label class="f">A0 语音堂数（标准 3）<input type="number" min="0" max="10" id="${pfx}a0" value="${c.a0||3}"></label>
+ <label class="f">A0 语音由谁上<input id="${pfx}ph" list="${pfx}tnames" value="${esc(c.ph||'')}" placeholder="空白＝按上课日（中教日中教、外教日外教）"><span class="note">填老师名字＝A0 语音每一堂都由这位老师上（含外教日）</span></label>
  <label class="f">算到哪个阶段<select id="${pfx}last">${path.map(k=>`<option value="${k}" ${(c.last||path[path.length-1])===k?'selected':''}>${CFG.st[k].n}</option>`).join('')}</select></label>
  </div>
  <div class="form" style="grid-template-columns:1fr">
@@ -597,7 +606,7 @@ function readEd(pfx,base){
  wd.sort();fr.sort();
  const start=g('start').value;
  const off=g('off').value.split(/[\n,，、]+/).map(s=>normDate(s,start)).filter(Boolean);
- const c=Object.assign({},base,{code:g('code').value.trim(),cat:g('cat').value,ft:g('ft').value==='1',coh:g('coh').value||start,stage:g('stage').value,start,last:g('last').value,a0:+g('a0').value||3,wd,fr,off,note:g('note').value,unset:false});
+ const c=Object.assign({},base,{code:g('code').value.trim(),cat:g('cat').value,ft:g('ft').value==='1',coh:g('coh').value||start,stage:g('stage').value,start,last:g('last').value,a0:+g('a0').value||3,ph:(g('ph')?g('ph').value.trim():(base.ph||'')),wd,fr,off,note:g('note').value,unset:false});
  const path=pathOf(c); if(!path.includes(c.stage))c.stage=path[0]; if(!path.includes(c.last))c.last=path[path.length-1];
  if(isIntl(c)) c.fr=c.wd.slice();
  if(document.getElementById(pfx+'tch')) c.tch=readT(pfx);
@@ -606,15 +615,15 @@ function readEd(pfx,base){
 const MIXK=['A1','A2','C5G'];
 const mixed=(c,s)=>!isIntl(c)&&(MIXK.includes(s.k)||(s.nZ>0&&s.nF>0));
 let RESC=null,RPLAIN=false;
-function stTch(c,s){if(c.unset||!s.ss.length)return '';const m=new Map();s.ss.forEach(x=>{const w=wdOf(x.d);tOfDay(c,w,x.d,s.k).forEach(t=>{const o=m.get(t.n)||{t,w:new Set(),sk:t.sk};o.w.add(w);m.set(t.n,o)})});if(!m.size)return '';
- return '<div class="small">'+[...m.values()].map(o=>`<b style="color:${tcol(c,o.t)}">${esc(o.t.n)}</b> ${wdStr([...o.w].sort())}${o.sk?' <span class="mut">'+o.sk+'</span>':''}`).join(' · ')+'</div>'}
+function stTch(c,s){if(c.unset||!s.ss.length)return '';const m=new Map();s.ss.forEach(x=>{const w=wdOf(x.d);const tt=tOfDay(c,w,x.d,s.k);if(!tt.length&&!isIntl(c)&&CLBK.includes(s.k))tt.push({n:'外教待定',zh:false,tbd:1});tt.forEach(t=>{const o=m.get(t.n)||{t,w:new Set(),sk:t.sk};o.w.add(w);m.set(t.n,o)})});if(!m.size)return '';
+ return '<div class="small">'+[...m.values()].map(o=>o.t.tbd?`<span class="mut">外教待定</span> ${wdStr([...o.w].sort())}`:`<b style="color:${tcol(c,o.t)}">${esc(o.t.n)}</b> ${wdStr([...o.w].sort())}${o.sk?' <span class="mut">'+o.sk+'</span>':''}`).join(' · ')+'</div>'}
 function result(c,plain){
  const I=info(c);RESC=c;RPLAIN=!!plain;const mx=(c,s)=>!plain&&mixed(c,s);
  if(!I.S.length) return '<p class="mut">请填写第一堂课日期与上课日。</p>';
  return `${I.warns.filter(w=>(!w.startsWith('课表写')||c.sheetEnd)&&!(plain&&/中教|外教|中\+|中\d|外教上课日/.test(w))).map(w=>`<div class="warnbox">${esc(w)}</div>`).join('')}
  <div class="stages">${I.S.map(s=>`<div class="sc ${I.cur===s&&I.st==='进行中'?'cur':''}" style="border-top-color:${color(s.k)}"><h4>${s.n}</h4>
  <div>${mdw(s.start)} → <b>${mdw(s.end)}</b></div><div class="mut">${s.cnt} 次课${mx(c,s)&&!c.unset?` · <span class="zh">中教 ${s.nZ}</span> · <span class="fr">外教 ${s.nF}</span>`:''}</div>
- ${stTch(c,s)}<div>期中：${s.mid?'<b>'+midStr(s)+'</b>'+(s.ovMid?' <span class="tag t-w">已改期</span>':''):(s.noMid?'<span class="mut">无（'+CFG.noMidFrom.slice(0,7)+' 起开班）</span>':'<span class="mut">无</span>')}</div>
+ ${stTch(c,s)}<div>${s.midHome?'期中（居家）起':'期中'}：${s.mid?'<b>'+(s.midHome?mdw(s.mid):midStr(s))+'</b>'+(s.midHome?' <span class="mut">'+(s.k==='A2'?'中教第 11 堂的第二天':'中教第 8 堂的第二天')+'</span>':'')+(s.ovMid?' <span class="tag t-w">已改期</span>':''):(s.noMid?'<span class="mut">无（'+CFG.noMidFrom.slice(0,7)+' 起开班）</span>':'<span class="mut">无</span>')}</div>
  <div>期末：${s.fin.length?'<b>'+s.fin.map(mdw).join('、')+'</b>'+(s.ovFin?' <span class="tag t-w">已改期</span>':''):'<span class="mut">无</span>'}</div>
  ${c.id&&CLS.includes(c)?`<div class="noprint" style="margin-top:4px">${s.mid||CFG.st[s.k].mid?`<button class="btn sm" onclick="chgEx('${c.id}','${s.k}','mid')">改期中</button> `:''}${s.fin.length?`<button class="btn sm" onclick="chgEx('${c.id}','${s.k}','fin')">改期末</button>`:''}</div>`:''}</div>`).join('')}</div>
  <p class="note">全程预计 ${mdw(I.S[0].start)} → <b>${mdw(I.last.end)}</b>，共 ${I.S.reduce((a,s)=>a+s.cnt,0)} 次课。假期已自动跳过${isWest(c)?'（含加西 9/30、11/11）':''}。</p>
@@ -639,7 +648,7 @@ async function dlSched(){
  const c=RESC;if(!c)return;try{await loadXLSX()}catch(e){alert(e.message);return}
  const I=info(c);const nm=(c.code||(c.start||'').slice(2).replace(/-/g,''))||'新班';
  const head=[['班级',(isWest(c)?'加西':'')+nm,c.cat,c.ft?'全日':'兼读','上课日 '+wdStr(c.wd)],[]];
- const a=[...head,['阶段','开始','结束','次数','期中','期末'],...I.S.map(s=>[s.n,s.start,s.end,s.cnt,s.mid?(s.midHome?s.mid+'（居家）起':s.mid):'',s.fin.join('、')])];
+ const a=[...head,['阶段','开始','结束','次数','期中','期末'],...I.S.map(s=>[s.n,s.start,s.end,s.cnt,s.mid?(s.midHome?s.mid+' 起（居家）':s.mid):'',s.fin.join('、')])];
  const b=[['阶段','第几堂','日期','星期',...(RPLAIN?[]:['中/外']),'考试'],...I.S.flatMap(s=>s.ss.map(x=>[s.n,x.i,x.d,CN[wdOf(x.d)],...(RPLAIN?[]:[mixed(c,s)&&!c.unset?(x.lab||(x.f?'外':'中')):'']),x.m||(s.midHome&&x.d===s.mid?'期中（居家）起':'')]))];
  const wb=XLSX.utils.book_new();const w1=XLSX.utils.aoa_to_sheet(a);w1['!cols']=[{wch:12},{wch:12},{wch:12},{wch:6},{wch:22},{wch:24}];
  const w2=XLSX.utils.aoa_to_sheet(b);w2['!cols']=[{wch:12},{wch:7},{wch:12},{wch:5},{wch:8},{wch:16}];
@@ -699,7 +708,7 @@ function chgEx(id,k,type){
  const c=CLS.find(x=>x.id===id); if(!c)return;
  const s=calc(c).find(x=>x.k===k);
  const cur=type==='mid'?(s&&s.mid?s.mid:''):(s?s.fin.join(', '):'');
- const v=prompt(type==='mid'?`新的期中日期（如 11/20；居家期中填开始日）\n留空＝恢复自动计算`:`新的期末日期，两天考请用逗号分开（如 11/20, 11/23）\n留空＝恢复自动计算`,cur);
+ const v=prompt(type==='mid'?`新的期中日期（如 11/20；居家期中填该周任一天）\n留空＝恢复自动计算`:`新的期末日期，两天考请用逗号分开（如 11/20, 11/23）\n留空＝恢复自动计算`,cur);
  if(v===null)return;
  c.exOv=c.exOv||{};c.exOv[k]=c.exOv[k]||{};
  const ds=v.split(/[,，、\s]+/).map(x=>normDate(x,s&&s.start)).filter(Boolean).sort();
@@ -759,7 +768,7 @@ const EXCOL=[['mail','邮件给老师'],['recv','老师收到'],['bell','铃铛�
 function exRows(list,edit){
  return list.map((e,i)=>{const st=EX[e.id]||{};const ds=exDays(e);
   const ts=[...new Map(ds.flatMap(x=>x.t).map(t=>[t.id,t])).values()];
-  const dateCell=ds.map(x=>e.home?md(x.d)+' 起':mdw(x.d)+(x.lab?' '+x.lab:'')).join('<br>');
+  const dateCell=ds.map(x=>e.home?md(x.d)+' 当周':mdw(x.d)+(x.lab?' '+x.lab:'')).join('<br>');
   const tCell=ds.map(x=>x.t.map(t=>esc(t.n)).join('、')+(x.lab?'('+x.lab+')':'')).join('<br>');
   const mCell=ts.map(t=>CFG.mail[t.id]?esc(CFG.mail[t.id]):`<span class="tag t-w">${esc(t.n)} 无邮箱</span>`).join('<br>');
   const ck=EXCOL.map(([k])=>{
@@ -881,7 +890,7 @@ function vQuick(){
  const cls=L.sort((a,b)=>(a.I.cur&&a.I.cur.end||'')<(b.I.cur&&b.I.cur.end||'')?-1:1).map(({c,I})=>{const s=I.cur;return `<tr class="click" onclick="openC('${c.id}')"><td><b>${esc(shortCode(c))}</b>${I.st==='即将开课'?' <span class="tag t-b">即将开课</span>':''}</td>${all?'<td>'+c.cat+'</td>':''}<td>${s?`<span class="tag st" style="background:${color(s.k)}">${s.n}</span>`:''}</td><td>${c.ft?'全日':'兼读'}</td><td>${wdHtml(c)}</td><td>${s?mdw(s.start)+' → '+mdw(s.end):''}</td><td>${I.nxt?I.nxt.n+'<br><span class="mut small">'+mdw(I.nxt.start)+' 起</span>':'—'}</td><td style="white-space:normal;min-width:140px">${tchStr(c)}</td></tr>`}).join('');
 
  return `<div class="row">${chips}</div>${kpi}
- ${(()=>{const ev=allEvents().filter(e=>!e.tr&&e.d>=addD(TODAY,-7)&&(all||e.c.cat===QC));const by={};ev.forEach(e=>{const k=e.d.slice(0,7);(by[k]=by[k]||[]).push(e)});
+ ${(()=>{const ev=allEvents().filter(e=>!e.tr&&e.d>=addD(TODAY,-wdOf(TODAY))&&(all||e.c.cat===QC));const by={};ev.forEach(e=>{const k=e.d.slice(0,7);(by[k]=by[k]||[]).push(e)});
   return Object.keys(by).map(k=>`<div class="card"><h2>考试日历 · ${k.slice(0,4)} 年 ${+k.slice(5)} 月（${by[k].length}）</h2>${evTable(by[k])}</div>`).join('')||'<div class="card"><span class="mut">没有考试</span></div>'})()}
  <div class="card"><h2>${QC||'全部班级'}（${L.length} 个班）</h2><p class="note">按本阶段结束日排序；点一行看完整排课。上课日颜色：中教绿色，外教各一色。</p><div class="tw"><table><tr><th>班级</th>${all?'<th>类型</th>':''}<th>目前阶段</th><th>形式</th><th>上课日</th><th>本阶段</th><th>下一阶段</th><th>老师</th></tr>${cls}</table></div></div>`;
 }
